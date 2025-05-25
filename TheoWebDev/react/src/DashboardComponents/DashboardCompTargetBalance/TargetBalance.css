@@ -1,0 +1,45 @@
+.target-balance-card {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.target-balance-card h2 {
+    margin-top: 0;
+    color: #333;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+}
+
+.target-balance-info,
+.remaining-goal-info {
+    display: flex;
+    justify-content: space-between;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.target-balance-info span:last-child,
+.remaining-goal-info span:last-child {
+    font-weight: bold;
+    color: #333;
+}
+
+.progress-bar-container {
+    background-color: #ddd;
+    border-radius: 5px;
+    height: 10px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: #81c784;
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.3s ease-out; /* Smooth transition for dynamic updates */
+}

@@ -1,0 +1,228 @@
+/* Sidebar.css */
+.popup-sidebar-container {
+  position: relative;
+}
+
+.toggle-button {
+  background: none;
+  color: white;
+  border: none;
+  padding: 10px; /* Adjust padding as needed */
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 1rem;
+  z-index: 101;
+  position: relative;
+  left: 10px; /* Adjust position from the left as needed */
+  top: 10px; /* Adjust position from the top as needed */
+}
+
+.hamburger-icon {
+  width: 30px;
+  height: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.hamburger-icon span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background-color: #333; /* Adjust color as needed */
+  border-radius: 2px;
+  transition: all 0.2s ease-in-out;
+}
+
+.hamburger-icon.open span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.hamburger-icon.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-icon.open span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -280px; /* Initially hidden off-screen on the left */
+  width: 280px;
+  height: 100%;
+  background-color: #1E293B; /* Dark background color */
+  color: #CBD5E1; /* Light text color */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transition: left 0.3s ease-in-out; /* Smooth slide-in/out */
+}
+
+.sidebar.open {
+  left: 0; /* Slide in from the left */
+}
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 102;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.sidebar-header .close-button {
+  background: none;
+  border: none;
+  color: #CBD5E1;
+  font-size: 1.5rem;
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  z-index: 103;
+}
+
+.sidebar-header .close-button:hover {
+  color: #F3F4F6;
+}
+
+.sidebar-profile {
+  padding: 20px;
+  border-bottom: 1px solid #475569;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-profile .profile-icon {
+  width: 40px;
+  height: 40px;
+  background-color: #4A5568;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-right: 15px;
+}
+
+.sidebar-profile .profile-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.sidebar-profile .profile-info p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94A3B8;
+}
+
+.sidebar-wallet {
+  padding: 20px;
+  border-bottom: 1px solid #475569;
+}
+
+.sidebar-wallet h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.sidebar-contact {
+  padding: 20px;
+  border-bottom: 1px solid #475569;
+}
+
+.sidebar-contact p {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.sidebar-contact p strong {
+  font-weight: bold;
+}
+
+.sidebar-nav {
+  padding: 10px 20px;
+  flex-grow: 1;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-nav li {
+  margin-bottom: 10px;
+}
+
+.sidebar-nav li a {
+  display: block;
+  padding: 12px 15px;
+  text-decoration: none;
+  color: #CBD5E1;
+  border-radius: 5px;
+}
+
+.sidebar-nav li a:hover {
+  background-color: #4A5568;
+}
+
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid #475569;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-footer button {
+  background-color: #3182CE;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.sidebar-footer button:hover {
+  background-color: #2B6CB0;
+}
+
+.sidebar-footer p {
+  font-size: 0.8rem;
+  color: #94A3B8;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+  z-index: 99; /* Below the sidebar */
+  display: none; /* Hidden by default */
+}
+
+.sidebar.open + .sidebar-overlay {
+  display: block;
+}

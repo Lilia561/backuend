@@ -1,0 +1,67 @@
+.dashboard-container {
+    background-color: rgb(255, 255, 255);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    max-width: 2000px; /* Adjust as needed */
+    width: 100%;
+    margin: 10px 200px 200px auto; /* Center the dashboard */
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.dashboard-header h1 {
+    color: #333;
+    font-size: 1.8em;
+    margin: 0;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* New style for the top-left area to create two columns */
+.top-left-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.available-balance-card {
+    background-color: #ffffff; /* The white box background */
+    border-radius: 8px;
+    border: 1px solid #ffffff;
+    padding: 20px;
+}
+
+.available-balance-card h2 {
+    margin-top: 0;
+    color: #333;
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+.available-balance {
+    font-size: 1.5em;
+    color: #2e7d32;
+    margin-bottom: 5px;
+}
+
+.right-column {
+    display: grid;
+    grid-template-rows: auto 1fr; /* Progress and History stacked */
+    gap: 20px;
+}

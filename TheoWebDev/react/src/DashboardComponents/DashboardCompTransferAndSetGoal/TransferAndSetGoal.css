@@ -1,0 +1,38 @@
+.transfer-and-set-goal {
+    display: flex;
+    gap: 10px; /* Consistent gap between buttons */
+    /* Important:  Do NOT set a background-color here.  The buttons
+       are designed to blend with the page background. */
+}
+
+.transfer-button {
+    background-color: #4dd0e1; /* Use the same color from the image */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+    transition: background-color 0.2s ease; /* Smooth transition */
+}
+
+.transfer-button:hover {
+    background-color: #26c6da; /* Darker shade on hover */
+}
+
+.set-goal-button {
+    background-color: #4dd0e1; /* Use the same color */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease;
+}
+
+.set-goal-button:hover {
+    background-color: #26c6da;
+}
