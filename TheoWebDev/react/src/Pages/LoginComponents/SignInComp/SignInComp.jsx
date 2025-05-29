@@ -17,7 +17,7 @@ const SignInComp = ({ navigateTo }) => {
   const passwordRef = useRef();
 
   /**
-   * Handles the form submission for user registration.
+   * Handles the form submission for user login.
    * Prevents default form submission, constructs payload, and sends it to the backend.
    * @param {Event} e - The form submission event.
    */
@@ -27,30 +27,28 @@ const SignInComp = ({ navigateTo }) => {
     // Clear previous errors
     setErrors(null);
 
-    // Construct the payload from ref values
+    // Construct the payload.
+    // The 'identifier' will be the contact number, as it's the primary unique field for login.
     const payload = {
-      contact_number: contactNumberRef.current.value, // <--- This line is supposed to get the contact number
-      email: emailRef.current.value,
+      identifier: contactNumberRef.current.value, // Using contact number as the primary identifier
       password: passwordRef.current.value,
-      password_confirmation: passwordRef.current.value, // Required for Laravel's 'confirmed' rule
     };
-
 
     try {
       await axiosClient.get('/sanctum/csrf-cookie');
 
-      // Send the registration data to the backend
-      const { data } = await axiosClient.post('/register', payload);
+      // Send the login data to the backend
+      const { data } = await axiosClient.post('/login', payload);
 
-      // On successful registration, store the access token
+      // On successful login, store the access token
       localStorage.setItem('ACCESS_TOKEN', data.token);
 
       // Navigate to the dashboard or home page
-      navigateTo('/'); // Assuming '/' is your dashboard/home route
-      console.log('Registration successful:', data);
+      navigateTo('/');
+      console.log('Login successful:', data);
 
     } catch (error) {
-      // Handle registration errors
+      // Handle login errors
       if (error.response && error.response.status === 422) {
         // Validation errors from Laravel
         setErrors(error.response.data.errors);
@@ -59,9 +57,14 @@ const SignInComp = ({ navigateTo }) => {
         // Specifically handle the 419 CSRF error for clearer debugging
         setErrors({ general: ['Session expired or CSRF token mismatch. Please refresh the page and try again.'] });
         console.error('CSRF Token Mismatch Error (419):', error);
-      } else {
+      } else if (error.response && error.response.status === 401) {
+        // Handle unauthorized (incorrect credentials) error
+        setErrors({ general: ['Invalid contact number or password. Please try again.'] });
+        console.error('Login failed: Invalid credentials.', error);
+      }
+      else {
         // Other types of errors (network, server, etc.)
-        console.error('Registration failed:', error);
+        console.error('Login failed:', error);
         setErrors({ general: ['An unexpected error occurred. Please try again.'] });
       }
     }

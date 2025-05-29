@@ -11,6 +11,7 @@ const SignUpComp = ({ navigateTo }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState(null); // ADDED: State to hold validation errors
 
   const nameRef = useRef();
   const contactNumberRef = useRef();
@@ -34,7 +35,6 @@ const SignUpComp = ({ navigateTo }) => {
       password_confirmation: passwordRef.current.value, // Required for Laravel's 'confirmed' rule
     };
 
-
     try {
       await axiosClient.get('/sanctum/csrf-cookie');
 
@@ -49,37 +49,38 @@ const SignUpComp = ({ navigateTo }) => {
       console.log('Registration successful:', data);
 
     } catch (error) {
-      console.log(error);
-      // // Handle registration errors
-      // if (error.response && error.response.status === 422) {
-      //   // Validation errors from Laravel
-      //   setErrors(error.response.data.errors);
-      //   console.error('Validation errors:', error.response.data.errors);
-      // } else if (error.response && error.response.status === 419) {
-      //   // Specifically handle the 419 CSRF error for clearer debugging
-      //   setErrors({ general: ['Session expired or CSRF token mismatch. Please refresh the page and try again.'] });
-      //   console.error('CSRF Token Mismatch Error (419):', error);
-      // } else {
-      //   // Other types of errors (network, server, etc.)
-      //   console.error('Registration failed:', error);
-      //   setErrors({ general: ['An unexpected error occurred. Please try again.'] });
-      // }
+      // Handle registration errors
+      if (error.response && error.response.status === 422) {
+        // Validation errors from Laravel
+        setErrors(error.response.data.errors); // This will now work
+        console.error('Validation errors:', error.response.data.errors);
+      } else if (error.response && error.response.status === 419) {
+        // Specifically handle the 419 CSRF error for clearer debugging
+        setErrors({ general: ['Session expired or CSRF token mismatch. Please refresh the page and try again.'] }); // This will now work
+        console.error('CSRF Token Mismatch Error (419):', error);
+      } else {
+        // Other types of errors (network, server, etc.)
+        console.error('Registration failed:', error);
+        setErrors({ general: ['An unexpected error occurred. Please try again.'] }); // This will now work
+      }
     }
   };
-
-
-
-
-  // const handleSubmit = (e) => {
-  //   e.preventDefault();
-  //   alert(`Frontend Only - Sign Up Attempt:\nFull Name: ${fullName}\nEmail: ${email}\nContact: ${contactNumber}\nPassword: ${password}`);
-  // };
 
   return (
     <div className={styles.authContainer}>
       <h1 className={styles.authTitle}>Create Account</h1>
       <p className={styles.authSubtitle}>Join us today!</p>
       <form onSubmit={handleSubmit} className={styles.authForm}>
+        {/* Display errors if any */}
+        {errors && ( // ADDED: Conditional rendering for error display
+          <div className={styles.errorContainer}>
+            {Object.keys(errors).map((key) => (
+              <p key={key} className={styles.errorMessage}>
+                {errors[key][0]} {/* Display the first error message for each field */}
+              </p>
+            ))}
+          </div>
+        )}
         <div className={styles.inputGroup}>
           <User />
           <input ref={nameRef} type="text" placeholder="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} className={styles.authInput} />
