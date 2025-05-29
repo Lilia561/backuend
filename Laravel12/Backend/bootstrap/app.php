@@ -3,7 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Laravel\Sanctum\Sanctum;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,9 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // \Illuminate\Http\Middleware\HandleCors::class;
-        // \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class;
-        // \Laravel\Sanctum\Sanctum::class;
+        //
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

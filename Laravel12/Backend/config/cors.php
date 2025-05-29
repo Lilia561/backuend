@@ -15,13 +15,16 @@ return [
     |
     */
 
-    'paths' => ['*', 'sanctum/csrf-cookie'],
+    // Add 'register' and 'login' to the paths array.
+    // You can also use a wildcard like '*' to allow all routes,
+    // but it's generally better to be specific for security.
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'register', 'login'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['http://localhost:3075'],
 
-    'allowed_origins_patterns' => ['http://localhost:3075'],
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
