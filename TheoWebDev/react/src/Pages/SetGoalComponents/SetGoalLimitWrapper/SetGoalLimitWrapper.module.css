@@ -1,0 +1,15 @@
+/* SetGoalLimitWrapper.module.css */
+
+.wrapper {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  background-color: #686594;
+
+  padding: 50px 20px;
+  box-sizing: border-box;
+}

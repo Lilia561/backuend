@@ -1,0 +1,88 @@
+.adminSection {
+  background-color: #fff;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.adminSection h2 {
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 10px;
+}
+
+.userTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.userTable th,
+.userTable td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+  color: black;
+}
+
+.userTable th {
+  background-color: #3498db;
+  color: white;
+  font-weight: bold;
+}
+
+.userTable tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.userTable tr:hover {
+  background-color: #f1f1f1;
+}
+
+.status {
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.9em;
+  font-weight: bold;
+  color: white;
+}
+
+.statusActive {
+  background-color: #2ecc71;
+}
+
+.statusInactive {
+  background-color: #e74c3c;
+}
+
+.actionBtn {
+  padding: 8px 12px;
+  margin-right: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: white;
+  font-size: 0.9em;
+}
+
+.editBtn {
+  background-color: #00cec8;
+}
+
+.editBtn:hover {
+  background-color: #00b9b3;
+}
+
+.deleteBtn {
+  background-color: #e74c3c;
+}
+
+.deleteBtn:hover {
+  background-color: #c0392b;
+}
