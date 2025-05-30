@@ -1,10 +1,9 @@
-
 import './App.css'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
 import Dashboard from './Pages/DashboardComponents/Dashboard';
 import AdminPage from './Pages/AdminPageComponents/AdminPage';
 import Transfer from './Pages/TransferComponents/Transfer';
-import WallEtTransfer from './Pages/WallEtTransferComponents/WallEtTransfer';
+import WallEtTransfer from './Pages/eWalletTransferScreenComponents/EWalletTransferComp';
 import OtherBanks from './Pages/OtherBanksComponents/OtherBanks';
 import Gcash from './Pages/GcashComponents/Gcash';
 import Paymaya from './Pages/PaymayaComponents/Paymaya';

@@ -1,5 +1,5 @@
 import React from 'react';
-import './TransferAndSetGoal.css';
+import './TransferAndSetGoalButton.css';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 function TransferAndSetGoal() {

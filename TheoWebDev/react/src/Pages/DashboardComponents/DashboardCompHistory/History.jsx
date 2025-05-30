@@ -1,10 +1,17 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './History.css';
 
 function History() {
     return (
         <div className="history-card">
-            <h2>History</h2>
+            <div className="history-header">
+                <h2>History</h2>
+                <Link to="/history" className="view-history-btn">
+                    View Full History
+                </Link>
+            </div>
+
             <div className="history-list">
                 <div className="history-item">
                     <div className="transaction-details">
@@ -27,7 +34,6 @@ function History() {
                     </div>
                     <span className="transaction-amount">-₱120.00</span>
                 </div>
-                {/* More history items (for scroll example) */}
                 <div className="history-item">
                     <div className="transaction-details">
                         <span>08/10/1999</span>
@@ -56,7 +62,6 @@ function History() {
                     </div>
                     <span className="transaction-amount">+₱350.00</span>
                 </div>
-                {/* End of more history items */}
             </div>
         </div>
     );

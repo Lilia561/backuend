@@ -7,13 +7,14 @@ import GoalPlanner from './DashboardCompGoalPlanner/GoalPlanner';
 import TargetBalance from './DashboardCompTargetBalance/TargetBalance';
 import LimitByCategory from './DashboardCompLimitByCategory/LimitByCategory';
 import TransactionLimits from './DashboardCompTransactionLimits/TransactionLimits';
-import TransferAndSetGoal from './DashboardCompTransferAndSetGoal/TransferAndSetGoal';
+import TransferAndSetGoal from './DashboardCompTransferAndSetGoal/TransferAndSetGoalButton';
 import PopupSidebar from './DashboardCompSideBar/Sidebar';
 import axiosClient from '../axios';
 import { useEffect } from 'react';
 
 function Dashboard() {
     // Mock data for the components (replace with your actual data)
+
     const limitsData = [
         { name: 'Food', spent: 985.00, limit: 2500.00 },
         { name: 'Shopping', spent: 1415.00, limit: 1500.00 },
