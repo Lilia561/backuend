@@ -47,4 +47,12 @@ class User extends Authenticatable
             'password' => 'hashed', // Ensures password is automatically hashed when set
         ];
     }
+
+    /**
+     * Get the transactions for the user.
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
 }

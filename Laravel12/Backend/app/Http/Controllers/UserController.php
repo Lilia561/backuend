@@ -8,6 +8,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -23,12 +24,31 @@ class UserController extends Controller
     }
 
     /**
-     * Returns a simple "hello" string.
-     * This method was in your original file and is not directly related to authentication.
+     * Display the current money of the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function token()
+    public function showMoney(Request $request)
     {
-        return "hello";
+        // Ensure the user is authenticated.
+        // This relies on your API routes being protected by a middleware like 'auth:sanctum'.
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        // Get the currently authenticated user
+        $user = Auth::user();
+
+        // Access the 'current_money' attribute from the user model
+        $currentMoney = $user->current_money;
+
+        // Return the current money in a JSON response
+        return response()->json([
+            'user_id' => $user->id,
+            'current_money' => $currentMoney,
+            'message' => 'Current money retrieved successfully.'
+        ]);
     }
 
     /**
@@ -89,7 +109,7 @@ class UserController extends Controller
      * @return \Illuminate\Http\JsonResponse
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function login(Request $request)
+     public function login(Request $request)
     {
         // Validate the incoming request data
         $request->validate([
@@ -125,7 +145,10 @@ class UserController extends Controller
         // Create a new API token for the authenticated user
         $token = $user->createToken('api_token')->plainTextToken;
 
-        // Return a JSON response with the generated token
-        return response()->json(['token' => $token]);
+        // Return a JSON response with the generated token AND the user's ID
+        return response()->json([
+            'token' => $token,
+            'user_id' => $user->id, // Add this line to include the user's ID
+        ]);
     }
 }

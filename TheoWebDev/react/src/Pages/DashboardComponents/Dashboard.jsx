@@ -28,17 +28,18 @@ function Dashboard() {
 
     useEffect(() => {
     document.title = 'Dashboard | Wall-et';
-  }, []);
+    }, []);
 
    
-    const [ money , setMoney ] = useState(); 
-    axiosClient.get('/token');
+    const [ currentMoney , setCurrentMoney ] = useState(); 
 
-    console.log("Hello")
-    axiosClient.get("/token")
-        .then(({data})=>{
-            setMoney(data);
-        })
+    axiosClient.get('api/user/money') // The full path would be e.g., http://localhost:8000/api/user/money
+            .then(({ data }) => {
+                // Assuming data structure: { user_id: ..., current_money: ..., message: ... }
+                setCurrentMoney(data.current_money);
+            })
+
+
     return (
         <>
 
@@ -57,7 +58,7 @@ function Dashboard() {
                         <div className="top-left-area"> {/* New container for Available and Target Balance */}
                             <div className="available-balance-card">
                                 <h2>Available Balance</h2>
-                                <p className="available-balance">{money}</p>
+                                <p className="available-balance">₱{currentMoney}</p>
                             </div>
                             <TargetBalance targetBalance={150} remainingToGoal={150} />
                         </div>
