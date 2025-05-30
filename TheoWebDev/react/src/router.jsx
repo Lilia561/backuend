@@ -35,7 +35,7 @@ function AppRouter() {
       <Route path="/admin" element={<AdminPage />} />
 
       {/* Main transfer page route */}
-      <Route path="/transfer" element={<TransferWrapperComp />} />
+      <Route path="/transfer" element={<Transfer />} />
 
       {/* Nested transfer routes */}
       <Route path="/transfer/wall-et-transfer" element={<WallEtTransfer />} />
