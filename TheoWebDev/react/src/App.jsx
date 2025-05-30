@@ -1,35 +1,22 @@
-import './App.css'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
-import Dashboard from './Pages/DashboardComponents/Dashboard';
-import AdminPage from './Pages/AdminPageComponents/AdminPage';
-import Transfer from './Pages/TransferComponents/Transfer';
-import WallEtTransfer from './Pages/eWalletTransferScreenComponents/EWalletTransferComp';
-import OtherBanks from './Pages/OtherBanksComponents/OtherBanks';
-import Gcash from './Pages/GcashComponents/Gcash';
-import Paymaya from './Pages/PaymayaComponents/Paymaya';
-import FeedBack from './Pages/FeedBackComponents/FeedBack';
-import LoginPage from './Pages/LoginComponents/LoginPage';
-import SetGoalLimitScreen from './Pages/SetGoalComponents/SetGoalLimitScreen/SetGoalLimitScreen';
+// App.jsx
+import './App.css';
+import { BrowserRouter as Router } from 'react-router-dom';
+import AppRouter from './router'; // Import the new AppRouter component
 
+/**
+ * Main App component.
+ * This component now focuses on setting up the Router and rendering the AppRouter.
+ * It keeps the main application file clean and modular.
+ */
 function App() {
   return (
     <Router>
-            <div className='routes'>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/setgoal" element={<SetGoalLimitScreen />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/transfer" element={<Transfer />} />
-                <Route path="/transfer/wall-et-transfer" element={<WallEtTransfer />} />
-                <Route path="/transfer/otherbanks" element={<OtherBanks />} />
-                <Route path="/transfer/otherbanks/gcash" element={<Gcash />} />
-                <Route path="/transfer/otherbanks/paymaya" element={<Paymaya />} />
-                <Route path="/feedback" element={<FeedBack />} />
-                <Route path="/Login" element={<LoginPage />} />
-            </Routes>
-          </div>
+      <div className='routes'>
+        {/* Render the AppRouter component which contains all your defined routes */}
+        <AppRouter />
+      </div>
     </Router>
   );
 }
 
-export default App
+export default App;
