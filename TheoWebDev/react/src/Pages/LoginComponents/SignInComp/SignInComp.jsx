@@ -13,7 +13,7 @@ const SignInComp = ({ navigateTo }) => {
 
   // Refs for direct access to input values (useful for forms)
   const contactNumberRef = useRef();
-  const emailRef = useRef(); // This ref is not used in the current handleSubmit logic for login
+  const emailRef = useRef();
   const passwordRef = useRef();
 
   /**
@@ -40,9 +40,8 @@ const SignInComp = ({ navigateTo }) => {
       // Send the login data to the backend
       const { data } = await axiosClient.post('/login', payload);
 
-      // On successful login, store the access token AND the user_id
+      // On successful login, store the access token
       localStorage.setItem('ACCESS_TOKEN', data.token);
-      localStorage.setItem('user_id', data.user_id); // <--- ADDED: Store the user_id
 
       // Navigate to the dashboard or home page
       navigateTo('/');
@@ -133,12 +132,12 @@ const SignInComp = ({ navigateTo }) => {
           </button>
         </div>
         <button type="submit" className={styles.authButton}>
-          Sign In {/* <--- CHANGED: From "Sign Up" to "Sign In" */}
+          Sign Up
         </button>
       </form>
       <div className={styles.authLinks}>
         <button onClick={() => navigateTo('signUp')} className={styles.authLink}>
-          Don't have an account? Sign Up {/* <--- CHANGED: Text for clarity */}
+          Already have an account? Sign In
         </button>
         <button onClick={() => navigateTo('forgotPassword')} className={styles.authLink}>
           Forgot Password?

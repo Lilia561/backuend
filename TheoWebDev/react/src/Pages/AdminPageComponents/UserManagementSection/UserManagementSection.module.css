@@ -53,11 +53,11 @@
   color: white;
 }
 
-.statusActive {
+.statusActivated {
   background-color: #2ecc71;
 }
 
-.statusInactive {
+.statusDeactivated {
   background-color: #e74c3c;
 }
 

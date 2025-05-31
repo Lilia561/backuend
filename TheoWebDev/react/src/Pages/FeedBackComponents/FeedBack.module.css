@@ -1,3 +1,20 @@
+.dashboardRoot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* Full height of viewport */
+  padding: 0px;
+  text-align: left;
+}
+
+.authWrapper {
+  width: 100%;
+  max-width: 1020px;
+  padding: 2rem; /* Optional for spacing */
+  border-radius: 8px; /* Optional styling */
+}
+
+
 .feedbackContainer {
   max-width: 600px;
   margin: 50px auto;
@@ -32,15 +49,26 @@
   color: #555;
 }
 
-.inputGroup input,
+.inputGroup input{
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #f9f9f9;
+}
 .inputGroup textarea {
   padding: 12px;
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 1rem;
   background-color: #f9f9f9;
-  resize: vertical;
+
+  resize: none;         /* 🔒 Prevents resizing */
+  width: 100%;          /* Or a fixed width like 300px */
+  height: 250px;        /* 📏 Set desired height */
+  box-sizing: border-box;
 }
+
 
 .submitButton {
   background-color: #2e7d32;
