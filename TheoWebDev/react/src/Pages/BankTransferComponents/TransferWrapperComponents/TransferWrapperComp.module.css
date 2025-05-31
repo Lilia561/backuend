@@ -1,0 +1,72 @@
+.dashboardRoot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 90vh;
+  padding: 0px;
+  text-align: center;
+}
+
+.authWrapper {
+  width: 100%;
+  max-width: 1020px;
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.transferWrapperContainer {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  gap: 20px;
+  width: 100%;
+  max-width: 1220px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1199px) {
+  .transferWrapperContainer {
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+}
+
+@media (max-width: 767px) {
+  .transferWrapperContainer {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .transferWrapperContainer :global(.transfer-section) {
+    flex-basis: auto !important;
+    width: 90% !important;
+    max-width: 500px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .transferWrapperContainer :global(.transfer-section) {
+    width: 95% !important;
+  }
+}
+
+.backButton {
+  margin-bottom: 20px;
+  background-color:rgb(0, 0, 0);
+  border: rgb(0, 0, 0);
+  color:rgb(255, 255, 255);
+  font-size: 1em;
+  cursor: pointer;
+  text-align: left;
+  padding: 10px 15px;
+  font-weight: bold;
+  transition: color 0.3s ease;
+  border-radius: 5px;
+  display: flex;
+}
+
+.backButton:hover {
+  color:rgb(0, 0, 0);
+  background-color:rgb(255, 255, 255);
+}

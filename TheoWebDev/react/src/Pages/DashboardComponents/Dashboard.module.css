@@ -1,0 +1,74 @@
+.dashboardRoot {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 50px 50px 50px 50px;
+  text-align: center;
+}
+
+.dashboardContainer {
+  background-color: rgb(255, 255, 255);
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  max-width: 2000px;
+  width: 100%;
+  margin: 10px 200px 200px auto;
+}
+
+.dashboardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.dashboardHeader h1 {
+  color: #333;
+  font-size: 1.8em;
+  margin: 0;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.topLeftArea {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.availableBalanceCard {
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #ffffff;
+  padding: 20px;
+}
+
+.availableBalanceCard h2 {
+  margin-top: 0;
+  color: #333;
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+.availableBalance {
+  font-size: 1.5em;
+  color: #2e7d32;
+  margin-bottom: 5px;
+}
+
+.rightColumn {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 20px;
+}
+

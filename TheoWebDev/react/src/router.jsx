@@ -1,19 +1,18 @@
 // AppRouter.jsx
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Import all your page components
+import './App.module.css'
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
 import Dashboard from './Pages/DashboardComponents/Dashboard';
 import AdminPage from './Pages/AdminPageComponents/AdminPage';
-import Transfer from './Pages/TransferComponents/Transfer';
-import WallEtTransfer from './Pages/eWalletTransferScreenComponents/EWalletTransferComp';
-import OtherBanks from './Pages/BankTransferComponents/TransferWrapperComponents/TransferWrapperComp';
-import Gcash from './Pages/GcashComponents/Gcash';
-import Paymaya from './Pages/PaymayaComponents/Paymaya';
-import FeedBack from './Pages/FeedBackComponents/FeedBack';
 import LoginPage from './Pages/LoginComponents/LoginPage';
 import SetGoalLimitScreen from './Pages/SetGoalComponents/SetGoalLimitScreen/SetGoalLimitScreen';
-import TransferWrapperComp from './Pages/BankTransferComponents/TransferWrapperComponents/TransferWrapperComp';
+import Feedback from './Pages/FeedBackComponents/FeedBack';
+import FullHistory from './Pages/HistoryPageComponents/FullHistory';
+import Transfer from './Pages/TransferComponents/Transfer';
+import OtherBanks from './Pages/BankTransferComponents/TransferWrapperComponents/TransferWrapperComp';
+import WallEtTransfer from './Pages/eWalletTransferScreenComponents/EWalletTransferComp';
 
 /**
  * AppRouter component centralizes all application routes.
@@ -40,14 +39,15 @@ function AppRouter() {
       {/* Nested transfer routes */}
       <Route path="/transfer/wall-et-transfer" element={<WallEtTransfer />} />
       <Route path="/transfer/otherbanks" element={<OtherBanks />} />
-      <Route path="/transfer/otherbanks/gcash" element={<Gcash />} />
-      <Route path="/transfer/otherbanks/paymaya" element={<Paymaya />} />
 
       {/* Feedback page route */}
-      <Route path="/feedback" element={<FeedBack />} />
+      <Route path="/feedback" element={<Feedback />} />
 
       {/* Login page route */}
       <Route path="/Login" element={<LoginPage />} />
+
+      {/* Login page route */}
+      <Route path="/history" element={<FullHistory />} />
 
       {/* Optional: Add a catch-all route for 404 Not Found pages or redirects */}
       {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
