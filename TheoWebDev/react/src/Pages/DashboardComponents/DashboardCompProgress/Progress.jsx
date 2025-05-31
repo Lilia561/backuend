@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './Progress.module.css';
+import './Progress.css';
 import {
   LineChart,
   Line,
@@ -50,24 +50,24 @@ function Progress() {
   };
 
   return (
-    <div className={styles['progress-card']}>
-      <div className={styles['progress-header']}>
+    <div className="progress-card">
+      <div className="progress-header">
         <h2>Progress</h2>
-        <div className={styles['toggle-buttons']}>
+        <div className="toggle-buttons">
           <button
-            className={view === 'daily' ? styles.active : ''}
+            className={view === 'daily' ? 'active' : ''}
             onClick={() => setView('daily')}
           >
             Daily
           </button>
           <button
-            className={view === 'weekly' ? styles.active : ''}
+            className={view === 'weekly' ? 'active' : ''}
             onClick={() => setView('weekly')}
           >
             Weekly
           </button>
           <button
-            className={view === 'monthly' ? styles.active : ''}
+            className={view === 'monthly' ? 'active' : ''}
             onClick={() => setView('monthly')}
           >
             Monthly

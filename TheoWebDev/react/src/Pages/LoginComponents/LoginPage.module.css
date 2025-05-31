@@ -1,17 +1,5 @@
-.dashboardRoot {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh; /* Full height of viewport */
-  padding: 0px;
-  text-align: center;
-}
-
+/* LoginPage.module.css */
 .authWrapper {
   width: 100%;
   max-width: 420px;
-  background-color: #fff; /* Optional */
-  padding: 2rem; /* Optional for spacing */
-  border-radius: 8px; /* Optional styling */
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional styling */
 }

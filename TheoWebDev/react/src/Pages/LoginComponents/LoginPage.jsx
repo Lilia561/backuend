@@ -35,10 +35,8 @@ function LoginPage() {
   };
 
   return (
-    <div className={styles.dashboardRoot}>
-        <div className={styles.authWrapper}>
-          {renderView()}
-        </div>
+    <div className={styles.authWrapper}>
+      {renderView()}
     </div>
   );
 }

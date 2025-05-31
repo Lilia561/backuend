@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './GoalPlanner.module.css';
+import './GoalPlanner.css';
 
 function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
   const radius = 50;
@@ -10,10 +10,10 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
   const progressColor = progress >= 100 ? '#4caf50' : '#81c784'; // green if completed
 
   return (
-    <div className={styles['goal-planner-card']}>
-      <h2 className={styles.goalPlannerCardTitle}>Goal Planner</h2>
-      <p className={styles.goalPlannerCardParagraph}>Track your Savings</p>
-      <div className={styles['goal-circle-container']}>
+    <div className="goal-planner-card">
+      <h2>Goal Planner</h2>
+      <p>Track your Savings</p>
+      <div className="goal-circle-container">
         <svg width={radius * 2 + strokeWidth} height={radius * 2 + strokeWidth} viewBox="0 0 100 100">
           {/* Background circle */}
           <circle
@@ -46,7 +46,7 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
             y="52"
             textAnchor="middle"
             dominantBaseline="middle"
-            className={styles['goal-percentage']}
+            className="goal-percentage"
             fontSize="16"
             fontWeight="bold"
           >
@@ -55,15 +55,13 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
         </svg>
       </div>
 
-      <p className={styles.goalPlannerCardParagraph}>
-        Remaining to Goal: ₱{Math.max(0, targetBalance - currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-      </p>
+      <p>Remaining to Goal: ₱{Math.max(0, targetBalance - currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
 
-      <div className={styles['goal-detail']}>
-        <h2 className={styles.goalDetailTitle}>Goal Detail</h2>
+      <div className="goal-detail">
+        <h2>Goal Detail</h2>
         {goalDetails && goalDetails.length > 0 ? (
           goalDetails.map((item, index) => (
-            <div className={styles['goal-detail-item']} key={index}>
+            <div className="goal-detail-item" key={index}>
               <span>{item.name}</span>
               <span>₱{item.targetAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>

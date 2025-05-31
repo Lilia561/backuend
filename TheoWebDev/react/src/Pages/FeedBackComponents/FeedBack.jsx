@@ -29,44 +29,40 @@ function Feedback() {
   };
 
   return (
-    <div className={styles.dashboardRoot}>
-      <div className={styles.authWrapper}>
-        <div className={styles.feedbackContainer}>
-          <button className={styles.backButton} onClick={handleBack}>
-            ← Back
-          </button>
+    <div className={styles.feedbackContainer}>
+      <button className={styles.backButton} onClick={handleBack}>
+        ← Back
+      </button>
 
-          <h2 className={styles.feedbackTitle}>We’d Love Your Feedback</h2>
-          <form className={styles.feedbackForm} onSubmit={handleSubmit}>
-            <div className={styles.inputGroup}>
-              <label htmlFor="name">Your Email</label>
-              <input
-                type="text"
-                name="name"
-                id="name"
-                placeholder="Enter your Email here"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className={styles.inputGroup}>
-              <label htmlFor="message">Your Feedback</label>
-              <textarea
-                name="message"
-                id="message"
-                rows="4"
-                placeholder="Write your thoughts here..."
-                value={formData.message}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <button className={styles.submitButton} type="submit">Submit</button>
-            {submitted && <p className={styles.successMessage}>Thank you for your feedback!</p>}
-          </form>
+      <h2 className={styles.feedbackTitle}>We’d Love Your Feedback</h2>
+      <form className={styles.feedbackForm} onSubmit={handleSubmit}>
+        <div className={styles.inputGroup}>
+          <label htmlFor="name">Your Email</label>
+          <input
+            type="text"
+            name="name"
+            id="name"
+            placeholder="Enter your Email here"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
         </div>
-      </div>
+        <div className={styles.inputGroup}>
+          <label htmlFor="message">Your Feedback</label>
+          <textarea
+            name="message"
+            id="message"
+            rows="4"
+            placeholder="Write your thoughts here..."
+            value={formData.message}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <button className={styles.submitButton} type="submit">Submit</button>
+        {submitted && <p className={styles.successMessage}>Thank you for your feedback!</p>}
+      </form>
     </div>
   );
 }

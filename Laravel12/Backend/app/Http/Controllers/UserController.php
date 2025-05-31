@@ -9,9 +9,122 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon; // For date formatting
+use App\Models\Transaction;
+use App\Models\Product; // Make sure to import the Product model
+use Illuminate\Support\Facades\DB; // For database transactions
 
 class UserController extends Controller
 {
+    /**
+     * Handle the money transfer between users.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function sendMoney(Request $request)
+    {
+        // 1. Validate the request data
+        $request->validate([
+            'recipient_identifier' => ['required', 'string'], // Email or contact number of recipient
+            'amount' => ['required', 'numeric', 'min:0.01'], // Amount must be positive
+            'purpose' => ['nullable', 'string', 'max:255'],  // Optional purpose/description
+        ]);
+
+        // Get the authenticated sender
+        // This assumes the API route is protected by 'auth:sanctum' middleware
+        /** @var User $sender */ // <--- ADDED: Type hint for IDE
+        $sender = Auth::user();
+
+        if (!$sender) {
+            return response()->json(['message' => 'Unauthorized: Sender not authenticated.'], 401);
+        }
+
+        $transferAmount = $request->input('amount');
+        $purpose = $request->input('purpose', 'E-Wallet Transfer'); // Default purpose if not provided
+
+        // Prevent self-transfer
+        if ($sender->email === $request->input('recipient_identifier') || $sender->contact_number === $request->input('recipient_identifier')) {
+            return response()->json(['message' => 'Cannot send money to yourself.'], 400);
+        }
+
+        // 2. Find the recipient
+        /** @var User $recipient */ // <--- ADDED: Type hint for IDE
+        $recipient = User::where('email', $request->input('recipient_identifier'))
+                         ->orWhere('contact_number', $request->input('recipient_identifier'))
+                         ->first();
+
+        if (!$recipient) {
+            return response()->json(['message' => 'Recipient not found.'], 404);
+        }
+
+        // 3. Check if sender has sufficient balance
+        if ($sender->current_money < $transferAmount) {
+            return response()->json(['message' => 'Insufficient balance.'], 400);
+        }
+
+        // 4. Perform the transaction using a database transaction
+        // This ensures that either all database operations succeed, or none of them do.
+        DB::beginTransaction();
+
+        try {
+            // Deduct from sender's balance
+            $sender->current_money -= $transferAmount;
+            $sender->save();
+
+            // Add to recipient's balance
+            $recipient->current_money += $transferAmount;
+            $recipient->save();
+
+            // Find or create a 'Transfer' product type for transactions
+            // IMPORTANT: Ensure you have a 'TRANSFER' product_type in your 'products' table.
+            // You might want to seed this product type if it doesn't exist.
+            $transferProduct = Product::firstOrCreate(
+                ['product_type' => 'TRANSFER'],
+                ['created_at' => now(), 'updated_at' => now()] // Add timestamps if needed
+            );
+
+            // Record transaction for the sender (Debit)
+            Transaction::create([
+                'user_id' => $sender->id,
+                'transaction_date' => now(),
+                'amount_spent' => -$transferAmount, // Store as negative, interpret as spent/debit
+                'product_id' => $transferProduct->id,
+                'description' => 'Sent to ' . ($recipient->name ?: $recipient->contact_number) . ': ' . $purpose,
+                // You might add a 'type' column like 'DEBIT' or 'TRANSFER_OUT' for clearer history
+            ]);
+
+            // Record transaction for the recipient (Credit)
+            Transaction::create([
+                'user_id' => $recipient->id,
+                'transaction_date' => now(),
+                'amount_spent' => $transferAmount, // Store as positive, interpret as received/credit
+                'product_id' => $transferProduct->id,
+                'description' => 'Received from ' . ($sender->name ?: $sender->contact_number) . ': ' . $purpose,
+                // You might add a 'type' column like 'CREDIT' or 'TRANSFER_IN' for clearer history
+            ]);
+
+            DB::commit(); // Commit the transaction if all operations are successful
+
+            return response()->json([
+                'message' => 'Money sent successfully!',
+                'sender_new_balance' => $sender->current_money,
+                'recipient_new_balance' => $recipient->current_money,
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Rollback on error
+            Log::error('Money transfer failed: ' . $e->getMessage(), [
+                'sender_id' => $sender->id,
+                'recipient_identifier' => $request->input('recipient_identifier'),
+                'amount' => $transferAmount,
+                'error_trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json(['message' => 'Money transfer failed. Please try again.'], 500);
+        }
+    }
+
     /**
      * Display the user profile.
      * This method is not directly related to authentication but was in your original file.
@@ -150,5 +263,83 @@ class UserController extends Controller
             'token' => $token,
             'user_id' => $user->id, // Add this line to include the user's ID
         ]);
+    }
+
+
+    /**
+     * Get transactions for a specific user.
+     *
+     * This method fetches transaction data from the database,
+     * eager-loads the associated product type, and formats the output
+     * for the React frontend.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getUserTransactions(Request $request)
+    {
+        // --- IMPORTANT: AUTHENTICATION AND USER ID HANDLING ---
+        // In a real-world application, you would typically get the user ID
+        // from the authenticated user (e.g., using Laravel Sanctum, Passport, or session).
+        // For demonstration purposes, we'll use a query parameter.
+        // Replace this with actual authentication logic in a production environment.
+        $userId = $request->query('user_id'); // Example: access with /api/transactions/user?user_id=1
+
+        // If no user ID is provided, or if the user is not authenticated,
+        // you might want to return an error or a default.
+        if (!$userId) {
+            // For now, let's assume a default user ID for testing if none is provided.
+            // In production, you would typically return a 401 Unauthorized response.
+            // return response()->json(['message' => 'User ID is required or unauthorized.'], 401);
+            $userId = 1; // Default to user ID 1 for testing purposes.
+                         // REMEMBER TO REPLACE THIS WITH AUTHENTICATED USER ID!
+        }
+
+        try {
+            // Fetch transactions for the given user ID.
+            // Eager load the 'product' relationship to get the product_type efficiently.
+            // Order by transaction_date in descending order to show latest first.
+            $transactions = Transaction::where('user_id', $userId)
+                                ->with('product') // Assumes a 'product' relationship in your Transaction model
+                                ->orderBy('transaction_date', 'desc')
+                                ->get();
+
+            // Format the transactions to match the structure expected by your React component.
+            $formattedTransactions = $transactions->map(function ($transaction) {
+                // Determine the transaction type. If a product is linked, use its type; otherwise, default to 'GENERAL'.
+                $transactionType = $transaction->product ? strtoupper($transaction->product->product_type) : 'GENERAL';
+
+                // Determine the amount sign and format.
+                // The amount_spent is stored as a positive value, we need to add the sign based on context.
+                // For simplicity, we'll assume negative for all, and positive for 'SALARY' or 'INCOME' types.
+                // You might have a 'transaction_type' column in your transactions table for this.
+                $isPositive = in_array($transactionType, ['SALARY', 'INCOME', 'DEPOSIT']);
+                // Corrected: Use abs() for negative amounts to ensure correct formatting with the '-' prefix
+                $displayAmount = $isPositive ? '+' . number_format($transaction->amount_spent, 2) : '-' . number_format(abs($transaction->amount_spent), 2);
+
+                // For the "PENDING" status, you would typically have a 'status' column in your transactions table.
+                // For this example, we'll assume all fetched transactions are 'COMPLETED' unless explicitly marked.
+                $isPending = false; // Set to true if you have a 'status' column and it's 'pending'
+
+                return [
+                    'id' => $transaction->id,
+                    'date' => Carbon::parse($transaction->transaction_date)->format('m/d/Y'), // Format date as MM/DD/YYYY
+                    'type' => $transactionType,
+                    'amount' => $transaction->amount_spent, // Keep original amount for calculations if needed
+                    'displayAmount' => $displayAmount, // Formatted string for display
+                    'description' => $transaction->description,
+                    'status' => $isPending ? 'PENDING' : 'COMPLETED',
+                    'is_pending' => $isPending,
+                ];
+            });
+
+            // Return the formatted transactions as a JSON response.
+            return response()->json($formattedTransactions);
+
+        } catch (\Exception $e) {
+            // Log the error and return a server error response.
+            Log::error('Error fetching user transactions: ' . $e->getMessage());
+            return response()->json(['message' => 'Error fetching transactions. Please try again later.'], 500);
+        }
     }
 }

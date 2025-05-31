@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './sidebar.module.css'; // Use CSS module
+import './Sidebar.css'; // Import the CSS file
 import { useNavigate } from 'react-router-dom';
 
 const PopupSidebar = () => {
@@ -11,14 +11,11 @@ const PopupSidebar = () => {
   };
 
   return (
-    <div className={styles.popupSidebarContainer}>
+    
+    <div className="popup-sidebar-container">
       {!isOpen && (
-        <button
-          className={styles.toggleButton}
-          onClick={toggleSidebar}
-          aria-label="Open Sidebar"
-        >
-          <div className={styles.hamburgerIcon}>
+        <button className="toggle-button" onClick={toggleSidebar} aria-label="Open Sidebar">
+          <div className="hamburger-icon">
             <span></span>
             <span></span>
             <span></span>
@@ -26,19 +23,19 @@ const PopupSidebar = () => {
         </button>
       )}
 
-      <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.sidebarProfile}>
-          <div className={styles.profileIcon}>P</div>
-          <div className={styles.profileInfo}>
+      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+        <div className="sidebar-profile">
+          <div className="profile-icon">P</div>
+          <div className="profile-info">
             <h4>Profile</h4>
           </div>
         </div>
 
-        <div className={styles.sidebarWallet}>
+        <div className="sidebar-wallet">
           <h2>WALLET</h2>
         </div>
 
-        <div className={styles.sidebarContact}>
+        <div className="sidebar-contact">
           <p>
             <strong>Contact Number</strong>
             <br />
@@ -51,22 +48,20 @@ const PopupSidebar = () => {
           </p>
         </div>
 
-        <nav className={styles.sidebarNav}>
+        <nav className="sidebar-nav">
           <ul>
-            <li>
-              <a href="/">Dashboard</a>
-            </li>
-            {/* Add other nav links here */}
+            <li><a href="/">Dashboard</a></li>
+            {/* ... other navigation links ... */}
           </ul>
         </nav>
 
-        <div className={styles.sidebarFooter}>
-          <button onClick={() => navigate('/feedback')}>Feedback</button>
-          <button onClick={() => navigate('/Login')}>Logout</button>
+        <div className="sidebar-footer">
+          <button onClick={() => {navigate('/feedback');}}>Feedback</button>
+          <button onClick={() => {navigate('/Login');}}>Logout</button>
         </div>
       </aside>
 
-      {isOpen && <div className={styles.sidebarOverlay} onClick={toggleSidebar}></div>}
+      {isOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
     </div>
   );
 };

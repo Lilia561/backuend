@@ -10,23 +10,19 @@ function Transfer() {
   }, []);
 
   return (
-    <div className={styles.dashboardRoot}>
-      <div className={styles.authWrapper}>
-        <div className={styles.container}>
-          <h1 className={styles.heading}>Transfer Option</h1>
-          <p>Send money securely to any bank with ease!</p>
-          <div className={styles.buttonGroup}>
-            <button className={styles.button} onClick={() => navigate('/transfer/wall-et-transfer')}>
-              Wall-et
-            </button>
-            <button className={styles.button} onClick={() => navigate('/transfer/otherbanks')}>
-              Other Banks
-            </button>
-            <button className={styles.button} onClick={() => navigate('/')}>
-              Back
-            </button>
-          </div>
-        </div>
+    <div className={styles.container}>
+      <h1 className={styles.heading}>Transfer Option</h1>
+      <p>Send money securely to any bank with ease!</p>
+      <div className={styles.buttonGroup}>
+        <button className={styles.button} onClick={() => navigate('/transfer/wall-et-transfer')}>
+          Wall-et
+        </button>
+        <button className={styles.button} onClick={() => navigate('/transfer/otherbanks')}>
+          Other Banks
+        </button>
+        <button className={styles.button} onClick={() => navigate('/')}>
+          Back
+        </button>
       </div>
     </div>
   );
