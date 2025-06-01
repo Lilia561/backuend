@@ -98,7 +98,7 @@ class UserController extends Controller
             Transaction::create([
                 'user_id' => $recipient->id,
                 'transaction_date' => now(),
-                'amount_spent' => $transferAmount, // Store as positive, interpret as received/credit
+                'amount_spent' => +$transferAmount, // Store as positive, interpret as received/credit
                 'product_id' => $transferProduct->id,
                 'description' => 'Received from ' . ($sender->name ?: $sender->contact_number) . ': ' . $purpose,
                 // You might add a 'type' column like 'CREDIT' or 'TRANSFER_IN' for clearer history
