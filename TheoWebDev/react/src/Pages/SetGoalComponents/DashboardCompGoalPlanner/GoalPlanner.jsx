@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './GoalPlanner.module.css';
+import styles from './GoalPlanner.module.css'; // Assuming you have a CSS module for this
 
 function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
   const radius = 50;
@@ -7,7 +7,7 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = 2 * Math.PI * normalizedRadius;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
-  const progressColor = progress >= 100 ? '#4caf50' : '#81c784';
+  const progressColor = progress >= 100 ? '#4caf50' : '#81c784'; // Green if 100%, lighter green otherwise
 
   return (
     <div className={styles.goalPlannerCard}>
@@ -24,7 +24,7 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
             cy="50"
             r={normalizedRadius}
             fill="none"
-            stroke="#e0e0e0"
+            stroke="#e0e0e0" // Background circle color
             strokeWidth={strokeWidth}
           />
           <circle
@@ -32,11 +32,11 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
             cy="50"
             r={normalizedRadius}
             fill="none"
-            stroke={progressColor}
+            stroke={progressColor} // Progress circle color
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
-            transform="rotate(-90 50 50)"
+            transform="rotate(-90 50 50)" // Start from the top
             strokeLinecap="round"
             style={{
               transition: 'stroke-dashoffset 0.3s ease-out, stroke 0.3s ease-out',
@@ -44,7 +44,7 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
           />
           <text
             x="50"
-            y="52"
+            y="52" // Adjust y for vertical centering
             textAnchor="middle"
             dominantBaseline="middle"
             style={{
@@ -53,7 +53,7 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
               fill: '#333',
             }}
           >
-            {progress}%
+            {Math.round(progress)}% {/* Display rounded percentage */}
           </text>
         </svg>
       </div>
@@ -69,8 +69,8 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
         <h2 className={styles.goalDetailHeading}>Goal Detail</h2>
         {goalDetails && goalDetails.length > 0 ? (
           goalDetails.map((item, index) => (
-            <div className={styles.goalDetailItem} key={index}>
-              <span>{item.name}</span>
+            <div className={styles.goalDetailItem} key={item.id || index}> {/* Use item.id if available, otherwise index */}
+              <span>{item.purpose}</span> {/* Changed from item.name to item.purpose */}
               <span>
                 ₱
                 {item.targetAmount.toLocaleString(undefined, {
@@ -80,7 +80,7 @@ function GoalPlanner({ progress, targetBalance, currentBalance, goalDetails }) {
             </div>
           ))
         ) : (
-          <p>No goal details available.</p>
+          <p>No goal details available. Set a new goal!</p> // More descriptive message
         )}
       </div>
     </div>

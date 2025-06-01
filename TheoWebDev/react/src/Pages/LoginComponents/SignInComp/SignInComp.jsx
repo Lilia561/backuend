@@ -132,7 +132,7 @@ const SignInComp = ({ navigateTo }) => {
           </button>
         </div>
         <button type="submit" className={styles.authButton}>
-          Sign Up
+          Sign In
         </button>
       </form>
       <div className={styles.authLinks}>

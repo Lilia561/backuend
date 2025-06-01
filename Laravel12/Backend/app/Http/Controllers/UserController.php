@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon; // For date formatting
 use App\Models\Transaction;
 use App\Models\Product; // Make sure to import the Product model
+use App\Models\Goal; // Import the Goal model
 use Illuminate\Support\Facades\DB; // For database transactions
 
 class UserController extends Controller
@@ -342,4 +343,89 @@ class UserController extends Controller
             return response()->json(['message' => 'Error fetching transactions. Please try again later.'], 500);
         }
     }
+
+    /**
+     * Store a newly created goal for the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeGoal(Request $request)
+    {
+        // Validate the incoming request data
+        $request->validate([
+            'purpose' => ['required', 'string', 'max:255'],
+            'target_balance' => ['required', 'numeric', 'min:0.01'],
+            'target_date' => ['nullable', 'date', 'after_or_equal:today'],
+        ]);
+
+        // Get the authenticated user
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            // Create the new goal
+            $goal = Goal::create([
+                'user_id' => $user->id,
+                'purpose' => $request->purpose,
+                'target_balance' => $request->target_balance,
+                'current_progress' => 0.00, // New goals start with 0 progress
+                'target_date' => $request->target_date ? Carbon::parse($request->target_date) : null,
+            ]);
+
+            return response()->json([
+                'message' => 'Goal created successfully!',
+                'goal' => $goal
+            ], 201); // 201 Created status code
+
+        } catch (\Exception $e) {
+            Log::error('Error creating goal: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to create goal. Please try again.'], 500);
+        }
+    }
+
+    /**
+     * Display a listing of the goals for the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getUserGoals(Request $request)
+    {
+        // Get the authenticated user
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            // Fetch all goals for the authenticated user
+            $goals = Goal::where('user_id', $user->id)
+                         ->orderBy('target_date', 'asc') // Order by target date
+                         ->get();
+
+            // Format the goals for the frontend
+            $formattedGoals = $goals->map(function ($goal) {
+                return [
+                    'id' => $goal->id,
+                    'purpose' => $goal->purpose,
+                    'targetAmount' => (float) $goal->target_balance, // Cast to float for JS
+                    'currentProgress' => (float) $goal->current_progress, // Cast to float
+                    'targetDate' => $goal->target_date ? Carbon::parse($goal->target_date)->format('Y-m-d') : null, // Format date
+                    'progressPercentage' => $goal->target_balance > 0 ? round(($goal->current_progress / $goal->target_balance) * 100) : 0,
+                ];
+            });
+
+            return response()->json($formattedGoals);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching goals: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to fetch goals.'], 500);
+        }
+    }
 }
+
