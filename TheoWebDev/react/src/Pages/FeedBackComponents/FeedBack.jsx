@@ -25,7 +25,7 @@ function Feedback() {
   };
 
   const handleBack = () => {
-    navigate('/'); // Go back to the previous page
+    navigate('/dashboard'); // Go back to the previous page
   };
 
   return (
@@ -38,18 +38,6 @@ function Feedback() {
 
           <h2 className={styles.feedbackTitle}>We’d Love Your Feedback</h2>
           <form className={styles.feedbackForm} onSubmit={handleSubmit}>
-            <div className={styles.inputGroup}>
-              <label htmlFor="name">Your Email</label>
-              <input
-                type="text"
-                name="name"
-                id="name"
-                placeholder="Enter your Email here"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
             <div className={styles.inputGroup}>
               <label htmlFor="message">Your Feedback</label>
               <textarea

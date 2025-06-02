@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail; // Keep commented unless you implement email verification
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // Add this line for Laravel Sanctum
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    // Add HasApiTokens to the use statement for Sanctum functionality
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
@@ -19,12 +18,14 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'contact_number', // Changed from 'name' to 'contact_number' as your primary unique identifier
+        'name',
         'email',
         'password',
-        'name',
-        'status', // <--- Add this
+        'contact_number',
+        'current_money',
+        'status', // Keep this for initial approval (pending, approved, rejected)
         'role',
+        'account_status', // <--- ADD THIS LINE
     ];
 
     /**
@@ -38,23 +39,12 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed', // Ensures password is automatically hashed when set
-        ];
-    }
-
-    /**
-     * Get the transactions for the user.
-     */
-    public function transactions()
-    {
-        return $this->hasMany(Transaction::class);
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 }

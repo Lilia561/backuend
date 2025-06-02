@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import axiosClient from '../../axios'; // Import your Axios client
+import axiosClient from '../../axios';; // Import your Axios client
 
 function Progress() {
   const [view, setView] = useState('daily');

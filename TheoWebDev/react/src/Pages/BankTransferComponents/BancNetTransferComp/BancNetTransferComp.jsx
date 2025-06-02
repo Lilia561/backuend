@@ -5,7 +5,7 @@ import '../GCashTransferComp/GcashTransferComp.css';
 
 function BancNetTransferComp() {
   const [accountNumber, setAccountNumber] = useState('');
-  const [bankName, setBankName] = useState('');
+  // const [bankName, setBankName] = useState('');
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
 

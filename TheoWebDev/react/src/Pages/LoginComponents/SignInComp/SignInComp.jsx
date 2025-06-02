@@ -1,3 +1,4 @@
+// SignInComp.jsx
 import React, { useState, useRef } from 'react';
 import { Eye, EyeOff, Mail, Lock, Phone } from '../Icons'; // Assuming these icons are correctly imported
 import styles from './SignInComp.module.css';
@@ -7,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 const SignInComp = ({ navigateTo }) => {
   // State variables for form inputs
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setRegPassword] = useState('');
   const [contacts, setContacts] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState(null);
@@ -44,6 +45,9 @@ const SignInComp = ({ navigateTo }) => {
       localStorage.setItem('ACCESS_TOKEN', data.token);
       // Store the admin status
       localStorage.setItem('IS_ADMIN', data.is_admin ? 'true' : 'false'); // Store as string
+      // Store the user ID
+      localStorage.setItem('user_id', data.user_id); // Assuming your API returns user_id upon successful login
+
 
       console.log('Login successful:', data);
 
@@ -117,7 +121,7 @@ const SignInComp = ({ navigateTo }) => {
             type={showPassword ? 'text' : 'password'}
             placeholder="Password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => setRegPassword(e.target.value)}
             className={styles.authInput}
             required
           />

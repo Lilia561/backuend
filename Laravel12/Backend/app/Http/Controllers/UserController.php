@@ -20,113 +20,117 @@ use function Psy\debug;
 class UserController extends Controller
 {
     /**
-     * Handle the money transfer between users.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function sendMoney(Request $request)
-    {
-        // 1. Validate the request data
-        $request->validate([
-            'recipient_identifier' => ['required', 'string'], // Email or contact number of recipient
-            'amount' => ['required', 'numeric', 'min:0.01'], // Amount must be positive
-            'purpose' => ['nullable', 'string', 'max:255'],  // Optional purpose/description
+ * Handle the money transfer between users.
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function sendMoney(Request $request)
+{
+    // 1. Validate the request data
+    $request->validate([
+        'recipient_identifier' => ['required', 'string'], // Email or contact number of recipient
+        'amount' => ['required', 'numeric', 'min:0.01'], // Amount must be positive
+        'purpose' => ['nullable', 'string', 'max:255'],  // Optional purpose/description
+    ]);
+
+    // Get the authenticated sender
+    // This assumes the API route is protected by 'auth:sanctum' middleware
+    /** @var User $sender */ // <--- ADDED: Type hint for IDE
+    $sender = Auth::user();
+
+    if (!$sender) {
+        return response()->json(['message' => 'Unauthorized: Sender not authenticated.'], 401);
+    }
+
+    $transferAmount = $request->input('amount');
+    $purpose = $request->input('purpose', 'E-Wallet Transfer'); // Default purpose if not provided
+
+    // Prevent self-transfer
+    if ($sender->email === $request->input('recipient_identifier') || $sender->contact_number === $request->input('recipient_identifier')) {
+        return response()->json(['message' => 'Cannot send money to yourself.'], 400);
+    }
+
+    // 2. Find the recipient
+    /** @var User $recipient */ // <--- ADDED: Type hint for IDE
+    $recipient = User::where('email', $request->input('recipient_identifier'))
+                     ->orWhere('contact_number', $request->input('recipient_identifier'))
+                     ->first();
+
+    if (!$recipient) {
+        return response()->json(['message' => 'Recipient not found.'], 404);
+    }
+
+    // 3. Check if sender has sufficient balance
+    if ($sender->current_money < $transferAmount) {
+        return response()->json(['message' => 'Insufficient balance.'], 400);
+    }
+
+    // 4. Perform the transaction using a database transaction
+    // This ensures that either all database operations succeed, or none of them do.
+    DB::beginTransaction();
+
+    try {
+        // Deduct from sender's balance
+        $sender->current_money -= $transferAmount;
+        $sender->save();
+
+        // Add to recipient's balance
+        $recipient->current_money += $transferAmount;
+        $recipient->save();
+
+        // Find or create a 'Transfer' product type for transactions
+        // IMPORTANT: Ensure you have a 'TRANSFER' product_type in your 'products' table.
+        // You might want to seed this product type if it doesn't exist.
+        $transferProduct = Product::firstOrCreate(
+            ['product_type' => 'TRANSFER'],
+            ['created_at' => now(), 'updated_at' => now()] // Add timestamps if needed
+        );
+
+        // Record transaction for the sender (Debit)
+        Transaction::create([
+            'user_id' => $sender->id,
+            'sender_id' => $sender->id,    // ADDED: Sender ID for the transaction
+            'receiver_id' => $recipient->id, // ADDED: Receiver ID for the transaction
+            'transaction_date' => now(),
+            'amount_spent' => -$transferAmount, // Store as negative, interpret as spent/debit
+            'product_id' => $transferProduct->id,
+            'description' => 'Sent to ' . ($recipient->name ?: $recipient->contact_number) . ': ' . $purpose,
+            'status' => 'completed', // ADDED: Set transaction status
         ]);
 
-        // Get the authenticated sender
-        // This assumes the API route is protected by 'auth:sanctum' middleware
-        /** @var User $sender */ // <--- ADDED: Type hint for IDE
-        $sender = Auth::user();
+        // Record transaction for the recipient (Credit)
+        Transaction::create([
+            'user_id' => $recipient->id,
+            'sender_id' => $sender->id,    // ADDED: Sender ID for the transaction
+            'receiver_id' => $recipient->id, // ADDED: Receiver ID for the transaction
+            'transaction_date' => now(),
+            'amount_spent' => +$transferAmount, // Store as positive, interpret as received/credit
+            'product_id' => $transferProduct->id,
+            'description' => 'Received from ' . ($sender->name ?: $sender->contact_number) . ': ' . $purpose,
+            'status' => 'completed', // ADDED: Set transaction status
+        ]);
 
-        if (!$sender) {
-            return response()->json(['message' => 'Unauthorized: Sender not authenticated.'], 401);
-        }
+        DB::commit(); // Commit the transaction if all operations are successful
 
-        $transferAmount = $request->input('amount');
-        $purpose = $request->input('purpose', 'E-Wallet Transfer'); // Default purpose if not provided
+        return response()->json([
+            'message' => 'Money sent successfully!',
+            'sender_new_balance' => $sender->current_money,
+            'recipient_new_balance' => $recipient->current_money,
+        ], 200);
 
-        // Prevent self-transfer
-        if ($sender->email === $request->input('recipient_identifier') || $sender->contact_number === $request->input('recipient_identifier')) {
-            return response()->json(['message' => 'Cannot send money to yourself.'], 400);
-        }
+    } catch (\Exception $e) {
+        DB::rollBack(); // Rollback on error
+        Log::error('Money transfer failed: ' . $e->getMessage(), [
+            'sender_id' => $sender->id,
+            'recipient_identifier' => $request->input('recipient_identifier'),
+            'amount' => $transferAmount,
+            'error_trace' => $e->getTraceAsString(),
+        ]);
 
-        // 2. Find the recipient
-        /** @var User $recipient */ // <--- ADDED: Type hint for IDE
-        $recipient = User::where('email', $request->input('recipient_identifier'))
-                         ->orWhere('contact_number', $request->input('recipient_identifier'))
-                         ->first();
-
-        if (!$recipient) {
-            return response()->json(['message' => 'Recipient not found.'], 404);
-        }
-
-        // 3. Check if sender has sufficient balance
-        if ($sender->current_money < $transferAmount) {
-            return response()->json(['message' => 'Insufficient balance.'], 400);
-        }
-
-        // 4. Perform the transaction using a database transaction
-        // This ensures that either all database operations succeed, or none of them do.
-        DB::beginTransaction();
-
-        try {
-            // Deduct from sender's balance
-            $sender->current_money -= $transferAmount;
-            $sender->save();
-
-            // Add to recipient's balance
-            $recipient->current_money += $transferAmount;
-            $recipient->save();
-
-            // Find or create a 'Transfer' product type for transactions
-            // IMPORTANT: Ensure you have a 'TRANSFER' product_type in your 'products' table.
-            // You might want to seed this product type if it doesn't exist.
-            $transferProduct = Product::firstOrCreate(
-                ['product_type' => 'TRANSFER'],
-                ['created_at' => now(), 'updated_at' => now()] // Add timestamps if needed
-            );
-
-            // Record transaction for the sender (Debit)
-            Transaction::create([
-                'user_id' => $sender->id,
-                'transaction_date' => now(),
-                'amount_spent' => -$transferAmount, // Store as negative, interpret as spent/debit
-                'product_id' => $transferProduct->id,
-                'description' => 'Sent to ' . ($recipient->name ?: $recipient->contact_number) . ': ' . $purpose,
-                // You might add a 'type' column like 'DEBIT' or 'TRANSFER_OUT' for clearer history
-            ]);
-
-            // Record transaction for the recipient (Credit)
-            Transaction::create([
-                'user_id' => $recipient->id,
-                'transaction_date' => now(),
-                'amount_spent' => +$transferAmount, // Store as positive, interpret as received/credit
-                'product_id' => $transferProduct->id,
-                'description' => 'Received from ' . ($sender->name ?: $sender->contact_number) . ': ' . $purpose,
-                // You might add a 'type' column like 'CREDIT' or 'TRANSFER_IN' for clearer history
-            ]);
-
-            DB::commit(); // Commit the transaction if all operations are successful
-
-            return response()->json([
-                'message' => 'Money sent successfully!',
-                'sender_new_balance' => $sender->current_money,
-                'recipient_new_balance' => $recipient->current_money,
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack(); // Rollback on error
-            Log::error('Money transfer failed: ' . $e->getMessage(), [
-                'sender_id' => $sender->id,
-                'recipient_identifier' => $request->input('recipient_identifier'),
-                'amount' => $transferAmount,
-                'error_trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json(['message' => 'Money transfer failed. Please try again.'], 500);
-        }
+        return response()->json(['message' => 'Money transfer failed. Please try again.'], 500);
     }
+}
 
     /**
      * Display the user profile.

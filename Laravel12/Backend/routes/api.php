@@ -19,9 +19,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 // Admin-specific routes, protected by both sanctum authentication and the custom admin role check
-Route::middleware(['auth:sanctum', AdminMiddleware::class])->group(function () { // <--- CHANGED THIS LINE
+Route::middleware(['auth:sanctum', AdminMiddleware::class])->group(function () {
     Route::get('/admin/dashboard-metrics', [AdminController::class, 'getDashboardMetrics']);
     // Add any other routes that ONLY admins should access here
+
+    // Route to fetch all users for the admin panel
+    Route::get('/admin/users', [AdminController::class, 'getAllUsers']);
+    // Placeholder routes for updating and deleting users
+    Route::put('/admin/users/{id}', [AdminController::class, 'updateUser']);
+    Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
+
+    // NEW: Route to fetch all transactions for the admin panel
+    Route::get('/admin/transactions', [AdminController::class, 'getAllTransactions']);
 });
 
 
@@ -33,7 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/transactions/user', [UserController::class, 'getUserTransactions']);
 
-// <--- ADD THIS NEW ROUTE FOR MONEY TRANSFER ---
+// Route for money transfer
 Route::middleware('auth:sanctum')->post('/e-wallet/transfer', [UserController::class, 'sendMoney']);
 
 // New Goal Routes
