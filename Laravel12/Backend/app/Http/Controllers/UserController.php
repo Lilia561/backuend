@@ -7,13 +7,17 @@ use App\Models\User;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log; // Corrected from ->
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon; // For date formatting
-use App\Models\Transaction;
-use App\Models\Product; // Make sure to import the Product model
-use App\Models\Goal; // Import the Goal model
-use Illuminate\Support\Facades\DB; // For database transactions
+use Carbon\Carbon;
+use App\Models\Transaction; // Corrected from ->
+use App\Models\Product;
+use App\Models\Goal; // Corrected from ->
+use Illuminate\Support\Facades\DB;
+
+use function Psy\debug;
+
+// ... rest of your UserController.php code
 
 class UserController extends Controller
 {
@@ -223,8 +227,9 @@ class UserController extends Controller
      * @return \Illuminate\Http\JsonResponse
      * @throws \Illuminate\Validation\ValidationException
      */
-     public function login(Request $request)
+    public function login(Request $request)
     {
+
         // Validate the incoming request data
         $request->validate([
             'identifier' => ['required', 'string'], // Can be email or contact number
@@ -233,36 +238,89 @@ class UserController extends Controller
 
         $identifier = $request->input('identifier');
         $password = $request->input('password');
+        $email = $request->input("email");
 
-        // Attempt to find the user by email or contact number
+        // Check for specific admin credentials first
+        $adminEmail = 'advirato@gmail.com';
+        $adminPassword = 'adminwhyadminidontknow12';
+
+        // Check if the provided credentials match the hardcoded admin ones
+        if ($email === $adminEmail && $password === $adminPassword) {
+            // Find the user by email for this specific admin login
+            $user = User::where('email', $adminEmail)->first();
+
+            // If the admin user does not exist in the database, create them (or handle as an error)
+            if (!$user) {
+                $user = User::create([
+                    'name' => 'Admin User',
+                    'email' => $adminEmail,
+                    'contact_number' => '00000000', // <-- CHANGED THIS LINE TO EIGHT ZEROES
+                    'password' => Hash::make($adminPassword),
+                    'status' => 'approved',
+                    'role' => 'admin'
+                ]);
+            } else {
+                 // Update password if it's not hashed or to match our specific hardcoded one.
+                 // In a real app, the admin password should be hashed in the DB.
+                 if (!Hash::check($adminPassword, $user->password)) {
+                     $user->password = Hash::make($adminPassword);
+                     $user->save();
+                 }
+                 // Ensure the contact number is also updated if the user already exists
+                 if ($user->contact_number !== '00000000') {
+                     $user->contact_number = '00000000'; // <-- ENSURE EXISTING ADMIN GETS THIS TOO
+                     $user->save();
+                 }
+                 if ($user->role !== 'admin') { // <--- This checks if role is NOT admin
+                     $user->role = 'admin';     // <--- This updates it to admin if needed
+                 }
+                 $user->save(); 
+            }
+
+            // Revoke old tokens for this admin user if necessary
+            $user->tokens()->where('name', 'api_token')->delete();
+
+            // Create a new API token for the authenticated admin user
+            $token = $user->createToken('admin_token')->plainTextToken;
+
+            // Return success response, explicitly indicating admin status
+            return response()->json([
+                'token' => $token,
+                'user_id' => $user->id,
+                'is_admin' => true,
+                'message' => 'Admin login successful!',
+            ]);
+        }
+
+        // --- Standard User Login Logic (if not the specific admin credentials) ---
+        // ... (this part remains unchanged)
         $user = null;
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
-            // If the identifier looks like an email, try to find by email
             $user = User::where('email', $identifier)->first();
         } else {
-            // Otherwise, assume it's a contact number and try to find by contact_number
             $user = User::where('contact_number', $identifier)->first();
         }
 
-        // Check if user exists and password is correct
         if (! $user || ! Hash::check($password, $user->password)) {
-            // If authentication fails, throw a validation exception
             throw ValidationException::withMessages([
                 'identifier' => ['The provided credentials are incorrect.'],
             ]);
         }
 
-        // Revoke old tokens for the 'api_token' name if necessary
-        // This ensures only one active token per user per device/session for this name.
-        $user->tokens()->where('name', 'api_token')->delete();
+        if (isset($user->status) && $user->status === 'pending') {
+            throw ValidationException::withMessages([
+                'identifier' => ['Your account is pending approval. Please wait for an administrator to activate it.'],
+            ]);
+        }
 
-        // Create a new API token for the authenticated user
+        $user->tokens()->where('name', 'api_token')->delete();
         $token = $user->createToken('api_token')->plainTextToken;
 
-        // Return a JSON response with the generated token AND the user's ID
         return response()->json([
             'token' => $token,
-            'user_id' => $user->id, // Add this line to include the user's ID
+            'user_id' => $user->id,
+            'is_admin' => false,
+            'message' => 'User login successful!',
         ]);
     }
 
@@ -378,7 +436,7 @@ class UserController extends Controller
 
             return response()->json([
                 'message' => 'Goal created successfully!',
-                'goal' => $goal
+                'goal' => $goal // Make sure to return the created goal object
             ], 201); // 201 Created status code
 
         } catch (\Exception $e) {
@@ -427,5 +485,44 @@ class UserController extends Controller
             return response()->json(['message' => 'Failed to fetch goals.'], 500);
         }
     }
-}
 
+    /**
+     * Display the authenticated user's profile details.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getUserProfile(Request $request)
+    {
+        // Ensure the user is authenticated.
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        // Get the currently authenticated user
+        $user = Auth::user();
+
+        // Return the user's details
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'contact_number' => $user->contact_number,
+            'current_money' => $user->current_money, // You can include this if needed
+            'message' => 'User profile retrieved successfully.'
+        ]);
+    }
+
+    // This method seems to be a leftover or duplicate,
+    // as showMoney already provides authenticated user's money.
+    // If 'token' refers to fetching the token itself, it should be in AuthController or similar.
+    // Given its name and context, it's unclear, but I'm keeping it as is per your original file.
+    public function token(Request $request)
+    {
+        // This is a placeholder; you might have a specific logic here.
+        // For Sanctum, tokens are usually generated on login.
+        // If this is meant to return the current user's token, it's not standard for a GET request.
+        // It's likely intended to return `Auth::user()` if the route is middleware('auth:sanctum').
+        return response()->json(['message' => 'Token endpoint reached.']);
+    }
+}

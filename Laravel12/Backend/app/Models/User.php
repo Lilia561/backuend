@@ -22,7 +22,9 @@ class User extends Authenticatable
         'contact_number', // Changed from 'name' to 'contact_number' as your primary unique identifier
         'email',
         'password',
-        'name'
+        'name',
+        'status', // <--- Add this
+        'role',
     ];
 
     /**
