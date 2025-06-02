@@ -1,6 +1,6 @@
 import { Eye, EyeOff, Mail, Lock, Phone, User } from '../Icons';
 import styles from './SignUpComp.module.css';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef} from 'react';
 import axiosClient from '../../axios'; // Your Axios client for API calls
 
 const SignUpComp = ({ navigateTo }) => {
@@ -67,7 +67,7 @@ const SignUpComp = ({ navigateTo }) => {
   };
 
   return (
-    <div className={styles.authContainer}>
+     <div className={styles.authContainer}>
       <h1 className={styles.authTitle}>Create Account</h1>
       <p className={styles.authSubtitle}>Join us today!</p>
       <form onSubmit={handleSubmit} className={styles.authForm}>
@@ -82,27 +82,27 @@ const SignUpComp = ({ navigateTo }) => {
           </div>
         )}
         <div className={styles.inputGroup}>
-          <User />
+          <span className={styles.inputIcon}><User /></span>
           <input ref={nameRef} type="text" placeholder="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} className={styles.authInput} />
         </div>
         <div className={styles.inputGroup}>
-          <Mail />
+          <span className={styles.inputIcon}><Mail /></span>
           <input ref={emailRef} type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className={styles.authInput} />
         </div>
         <div className={styles.inputGroup}>
-          <Phone />
+          <span className={styles.inputIcon}><Phone /></span>
           <input ref={contactNumberRef} type="tel" placeholder="+639XXXXXXXXX" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} className={styles.authInput} />
         </div>
         <p className={styles.inputHint}>Philippines format: +63 followed by 10 digits.</p>
         <div className={styles.inputGroup}>
-          <Lock />
+          <span className={styles.inputIcon}><Lock /></span>
           <input ref={passwordRef} type={showPassword ? 'text' : 'password'} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className={styles.authInput} />
           <button type="button" onClick={() => setShowPassword(!showPassword)} className={styles.passwordToggle} aria-label={showPassword ? "Hide password" : "Show password"}>
             {showPassword ? <EyeOff /> : <Eye />}
           </button>
         </div>
         <div className={styles.inputGroup}>
-          <Lock />
+          <span className={styles.inputIcon}><Lock /></span>
           <input type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={styles.authInput} />
           <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={styles.passwordToggle} aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>
             {showConfirmPassword ? <EyeOff /> : <Eye />}

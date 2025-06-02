@@ -105,10 +105,6 @@ const PopupSidebar = () => {
 
         <nav className={styles.sidebarNav}>
           <ul>
-            <li>
-              <a href="/">Dashboard</a>
-            </li>
-            {/* Add other nav links here */}
           </ul>
         </nav>
 

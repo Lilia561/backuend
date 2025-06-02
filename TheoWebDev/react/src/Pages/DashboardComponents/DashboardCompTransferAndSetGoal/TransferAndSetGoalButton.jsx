@@ -22,14 +22,6 @@ function TransferAndSetGoal() {
             >
                 Set Goal and Limit
             </button>
-            <button
-                className="admin-page-button"
-                onClick={() => {
-                    navigate('/admin');
-                }}
-            >
-                Admin
-            </button>
         </div>
     );
 }

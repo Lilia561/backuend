@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Eye, EyeOff, Mail, Lock, Phone } from '../Icons'; // Assuming these icons are correctly imported
 import styles from './SignInComp.module.css';
 import axiosClient from '../../axios'; // Your Axios client for API calls
+import { useNavigate } from 'react-router-dom';
 
 const SignInComp = ({ navigateTo }) => {
   // State variables for form inputs
@@ -15,6 +16,8 @@ const SignInComp = ({ navigateTo }) => {
   const contactNumberRef = useRef();
   const emailRef = useRef();
   const passwordRef = useRef();
+
+  const navigate = useNavigate();
 
   /**
    * Handles the form submission for user login.
@@ -46,9 +49,10 @@ const SignInComp = ({ navigateTo }) => {
 
       // Redirect based on admin status
       if (data.is_admin) {
-        navigateTo('/admin'); // Redirect to admin dashboard
+        console.log("happening");
+        navigate('/admin'); // Redirect to admin dashboard
       } else {
-        navigateTo('/'); // Redirect to regular user dashboard
+        navigate('/dashboard'); // Redirect to regular user dashboard
       }
 
     } catch (error) {

@@ -7,17 +7,15 @@ use App\Models\User;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Log; // Corrected from ->
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
-use App\Models\Transaction; // Corrected from ->
+use App\Models\Transaction;
 use App\Models\Product;
-use App\Models\Goal; // Corrected from ->
+use App\Models\Goal;
 use Illuminate\Support\Facades\DB;
 
 use function Psy\debug;
-
-// ... rest of your UserController.php code
 
 class UserController extends Controller
 {
@@ -524,5 +522,85 @@ class UserController extends Controller
         // If this is meant to return the current user's token, it's not standard for a GET request.
         // It's likely intended to return `Auth::user()` if the route is middleware('auth:sanctum').
         return response()->json(['message' => 'Token endpoint reached.']);
+    }
+
+    /**
+     * Get financial progress data for the authenticated user.
+     * This method aggregates transaction data into daily, weekly, and monthly net changes.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getFinancialProgressData(Request $request)
+    {
+        // Ensure the user is authenticated.
+        $userId = Auth::id(); // Get the authenticated user's ID
+
+        if (!$userId) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            // Fetch all transactions for the authenticated user, ordered by date.
+            $transactions = Transaction::where('user_id', $userId)
+                                ->orderBy('transaction_date', 'asc')
+                                ->get();
+
+            // Initialize data structures for daily, weekly, and monthly progress
+            $dailyProgress = [];
+            $weeklyProgress = [];
+            $monthlyProgress = [];
+
+            // Process transactions to calculate daily net changes
+            foreach ($transactions as $transaction) {
+                $date = Carbon::parse($transaction->transaction_date);
+                $dayKey = $date->format('Y-m-d'); // e.g., '2025-06-02'
+                $dayName = $date->format('D'); // e.g., 'Mon'
+
+                // Sum amounts for each day
+                if (!isset($dailyProgress[$dayKey])) {
+                    $dailyProgress[$dayKey] = ['name' => $dayName, 'progress' => 0];
+                }
+                $dailyProgress[$dayKey]['progress'] += (float) $transaction->amount_spent;
+            }
+
+            // Convert daily progress to a simple array for the frontend
+            $formattedDaily = array_values($dailyProgress);
+
+            // Calculate weekly and monthly progress from daily progress
+            // This approach ensures that weekly/monthly aggregates are based on the daily net changes.
+            foreach ($dailyProgress as $dateKey => $data) {
+                $date = Carbon::parse($dateKey);
+
+                // Weekly aggregation
+                $weekKey = $date->startOfWeek()->format('Y-W'); // e.g., '2025-23' (Year-Week number)
+                $weekName = 'Week ' . $date->weekOfYear; // e.g., 'Week 23'
+                if (!isset($weeklyProgress[$weekKey])) {
+                    $weeklyProgress[$weekKey] = ['name' => $weekName, 'progress' => 0];
+                }
+                $weeklyProgress[$weekKey]['progress'] += $data['progress'];
+
+                // Monthly aggregation
+                $monthKey = $date->format('Y-M'); // e.g., '2025-Jun'
+                $monthName = $date->format('M'); // e.g., 'Jun'
+                if (!isset($monthlyProgress[$monthKey])) {
+                    $monthlyProgress[$monthKey] = ['name' => $monthName, 'progress' => 0];
+                }
+                $monthlyProgress[$monthKey]['progress'] += $data['progress'];
+            }
+
+            $formattedWeekly = array_values($weeklyProgress);
+            $formattedMonthly = array_values($monthlyProgress);
+
+            return response()->json([
+                'daily' => $formattedDaily,
+                'weekly' => $formattedWeekly,
+                'monthly' => $formattedMonthly,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching financial progress data: ' . $e->getMessage());
+            return response()->json(['message' => 'Error fetching financial progress data. Please try again later.'], 500);
+        }
     }
 }

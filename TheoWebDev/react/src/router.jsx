@@ -22,7 +22,7 @@ function AppRouter() {
   return (
     <Routes>
       {/* Default route, navigates to Dashboard */}
-      <Route path="/" element={<Dashboard />} />
+      <Route path="/dashboard" element={<Dashboard />} />
 
       {/* Route for other wallet transfers */}
       {/* <Route path="/OtherWallet" element={<TransferWrapperComp />} /> */}

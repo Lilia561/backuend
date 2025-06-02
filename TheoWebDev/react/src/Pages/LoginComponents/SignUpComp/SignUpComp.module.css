@@ -44,7 +44,7 @@
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 1em;
-  color: #dfe3e9;
+  color: #374151; /* fixed to match SignIn */
   box-sizing: border-box;
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
@@ -67,7 +67,7 @@
   align-items: center;
 }
 
-.passwordToggle .inputIcon {
+.passwordToggleIcon {
   position: static;
   pointer-events: auto;
   color: #6b7280;

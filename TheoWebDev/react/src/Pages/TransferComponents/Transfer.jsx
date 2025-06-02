@@ -22,7 +22,7 @@ function Transfer() {
             <button className={styles.button} onClick={() => navigate('/transfer/otherbanks')}>
               Other Banks
             </button>
-            <button className={styles.button} onClick={() => navigate('/')}>
+            <button className={styles.button} onClick={() => navigate('/dashboard')}>
               Back
             </button>
           </div>

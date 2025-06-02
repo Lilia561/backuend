@@ -25,6 +25,10 @@ Route::middleware(['auth:sanctum', AdminMiddleware::class])->group(function () {
 });
 
 
+Route::middleware('auth:sanctum')->group(function () {
+    // ... your existing authenticated routes
+    Route::get('/user/financial-progress', [UserController::class, 'getFinancialProgressData']);
+});
 
 
 Route::get('/transactions/user', [UserController::class, 'getUserTransactions']);

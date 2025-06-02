@@ -123,7 +123,7 @@ function SetGoalLimitScreen() {
     };
 
     const handleBackClick = () => {
-        navigate('/');
+        navigate('/dashboard');
     };
 
     // Calculate total target balance from all goals
