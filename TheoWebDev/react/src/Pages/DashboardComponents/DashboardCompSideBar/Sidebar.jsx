@@ -60,6 +60,7 @@ const PopupSidebar = () => {
 
   useEffect(() => {
     fetchUserDetails();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on component mount
 
   return (

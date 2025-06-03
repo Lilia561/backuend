@@ -4,6 +4,7 @@ import TransactionHistorySection from "./TransactionHistorySection/TransactionHi
 import DashboardSection from "./DashboardSection/DashboardSection";
 import UserManagementSection from "./UserManagementSection/UserManagementSection";
 import Feedback from "./FeedbackAdminSection/FeedbackAdmin"
+import Approval from "./ApprovalSection/Approval";
 import styles from "./AdminPage.module.css"; 
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from 'react';
@@ -34,6 +35,8 @@ function AdminPage() {
         return <SettingsSection />;
       case "feedback":
         return <Feedback />;
+      case "approval":
+        return <Approval />;
       default:
         return <DashboardSection />;
     }
@@ -68,6 +71,12 @@ function AdminPage() {
               onClick={() => setActiveSection("feedback")}
             >
               Feedback
+            </li>
+             <li
+              className={activeSection === "approval" ? styles.active : ""}
+              onClick={() => setActiveSection("approval")}
+            >
+              Approval
             </li>
             <li
               className={activeSection === "settings" ? styles.active : ""}

@@ -9,6 +9,10 @@ use App\Models\Feedback; // Import the new Feedback Model
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash; 
+
+use Illuminate\Validation\Rules;          // <--- ADD THIS LINE if missing
+use Illuminate\Auth\Events\Registered;  
 
 class AdminController extends Controller
 {
@@ -341,4 +345,140 @@ class AdminController extends Controller
             return response()->json(['message' => 'Failed to fetch feedback.'], 500);
         }
     }
+
+
+      /**
+     * Helper method to perform common admin authorization checks.
+     *
+     * @return \Illuminate\Http\JsonResponse|null Returns a JSON response if unauthorized, otherwise null.
+     */
+    private function authorizeAdmin()
+    {
+        // First, check if any user is authenticated.
+        if (!auth()->check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        // Get the authenticated user. If auth()->check() is true, this will not be null.
+        $user = auth()->user();
+
+        // Now, check if the authenticated user has admin privileges.
+        // Assuming 'is_admin' is a boolean column on your User model.
+        if (!$user->is_admin) {
+            return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        return null; // Return null if authorization passes
+    }
+
+
+
+
+     /**
+     * Get all users with 'pending' status for admin approval.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getPendingUsers()
+    {
+        // Perform admin authorization check
+
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            $pendingUsers = User::where('status', 'pending')->get();
+
+            return response()->json($pendingUsers);
+        } catch (\Exception $e) {
+            Log::error('Error fetching pending users: ' . $e->getMessage());
+            return response()->json(['message' => 'Could not fetch pending users.', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+
+
+    /**
+     * Approve a user account.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function approveUser(Request $request, $id)
+    {
+        // Perform admin authorization check
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                return response()->json(['message' => 'User not found.'], 404);
+            }
+
+            // Only approve if the status is currently 'pending'
+            if ($user->status !== 'pending') {
+                return response()->json(['message' => 'User is not in pending status. Current status: ' . $user->status], 400);
+            }
+
+            $user->status = 'approved';
+            $user->account_status = 'active'; // Also set account_status to active upon approval
+            $user->save();
+
+            // Optionally, send an email notification to the user about approval
+
+            return response()->json(['message' => 'User approved successfully.', 'user' => $user]);
+        } catch (\Exception $e) {
+            Log::error('Error approving user ' . $id . ': ' . $e->getMessage());
+            return response()->json(['message' => 'Could not approve user.', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+
+
+
+    /**
+     * Reject a user account.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function rejectUser(Request $request, $id)
+    {
+        // Perform admin authorization check
+       if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                return response()->json(['message' => 'User not found.'], 404);
+            }
+
+            // Only reject if the status is currently 'pending'
+            if ($user->status !== 'pending') {
+                return response()->json(['message' => 'User is not in pending status. Current status: ' . $user->status], 400);
+            }
+
+            $user->status = 'rejected';
+            $user->account_status = 'inactive'; // Keep inactive or set to inactive if not already
+            $user->save();
+
+            // Optionally, send an email notification to the user about rejection
+
+            return response()->json(['message' => 'User rejected successfully.', 'user' => $user]);
+        } catch (\Exception $e) {
+            Log::error('Error rejecting user ' . $id . ': ' . $e->getMessage());
+            return response()->json(['message' => 'Could not reject user.', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+
 }

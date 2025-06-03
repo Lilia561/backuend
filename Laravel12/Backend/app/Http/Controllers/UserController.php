@@ -16,6 +16,8 @@ use App\Models\Goal;
 use Illuminate\Support\Facades\DB;
 use App\Models\UserCategoryLimit;
 use App\Models\Category;
+use Illuminate\Validation\Rules;          // <--- ADD THIS LINE if missing
+use Illuminate\Auth\Events\Registered;
 
 
 class UserController extends Controller
@@ -45,8 +47,9 @@ class UserController extends Controller
 
         $transferAmount = $request->input('amount');
         // Retrieve the category_name from the request, which now directly comes from the "Purpose/Category" field
-        // This description is what will be saved in the database for the sender's transaction
-        $descriptionForSenderTransaction = $request->input('category_name') ?: ($request->input('purpose', 'TRANSFER')); // MODIFIED: Default to 'TRANSFER' if no category/purpose
+        $transactionCategoryName = $request->input('category_name');
+        // Fallback for description if category_name is empty, otherwise use category_name
+        $descriptionForTransaction = $transactionCategoryName ?: ($request->input('purpose', 'E-Wallet Transfer'));
 
 
         // Prevent self-transfer
@@ -101,7 +104,7 @@ class UserController extends Controller
                 'transaction_date' => now(),
                 'amount_spent' => -$transferAmount, // Store as negative, interpret as spent/debit
                 'product_id' => $transferProduct->id,
-                'description' => $descriptionForSenderTransaction, // Saves ONLY the purpose/category provided by user
+                'description' => $descriptionForTransaction, // Saves ONLY the purpose/category
                 'status' => 'completed',
             ]);
 
@@ -126,9 +129,8 @@ class UserController extends Controller
             }
 
             // --- Update Category Spending Limit ---
-            // Use the $descriptionForSenderTransaction as the category name for tracking
-            if ($descriptionForSenderTransaction && $transferAmount > 0) { // Only track outgoing expenses for categories
-                $category = Category::firstOrCreate(['name' => $descriptionForSenderTransaction]); // MODIFIED: Use $descriptionForSenderTransaction
+            if ($transactionCategoryName && $transferAmount > 0) { // Only track outgoing expenses for categories
+                $category = Category::firstOrCreate(['name' => $transactionCategoryName]);
 
                 $userCategoryLimit = UserCategoryLimit::where('user_id', $sender->id)
                                                     ->where('category_id', $category->id)
@@ -138,7 +140,7 @@ class UserController extends Controller
                     $userCategoryLimit->current_spent_amount += $transferAmount;
                     $userCategoryLimit->save();
                 } else {
-                    Log::info("Transaction for category '{$descriptionForSenderTransaction}' occurred, but no specific limit is set for user {$sender->id}.");
+                    Log::info("Transaction for category '{$transactionCategoryName}' occurred, but no specific limit is set for user {$sender->id}.");
                 }
             }
 
@@ -203,6 +205,7 @@ class UserController extends Controller
         ]);
     }
 
+   
     /**
      * Handle user registration.
      * This method creates a new user in the database and generates an API token.
@@ -225,14 +228,20 @@ class UserController extends Controller
                 'contact_number' => $request->contact_number,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
+                'status' => 'pending',         // <--- ADDED: New users start as 'pending'
+                'account_status' => 'inactive', // <--- ADDED: Set account_status to 'inactive' until approved
+                'is_admin' => false,           // <--- ADDED: New users are not admins by default
             ]);
+
+            // This line is important for Laravel's event system, keep it
+            event(new Registered($user)); // <--- ADD THIS LINE if missing
 
             $token = $user->createToken('api_token')->plainTextToken;
 
             return response()->json([
                 'user' => $user,
                 'token' => $token,
-                'message' => 'Registration successful!'
+                'message' => 'Registration successful! Your account is pending admin approval.' // <--- MODIFIED MESSAGE
             ], 201);
 
         } catch (\Exception $e) {
@@ -244,7 +253,7 @@ class UserController extends Controller
             ], 500);
         }
     }
-
+    
     /**
      * Handle user login.
      * This method authenticates a user using either email or contact number and generates an API token.
@@ -364,38 +373,24 @@ class UserController extends Controller
         try {
             // Eager load product, sender, and receiver relationships to get names
             $transactions = Transaction::where('user_id', $userId)
-                                ->with('product', 'sender', 'receiver') // ADDED: Eager load sender and receiver
+                                ->with('product', 'sender', 'receiver') // MODIFIED HERE: Added sender and receiver eager loading
                                 ->orderBy('transaction_date', 'desc')
                                 ->get();
 
-            // Fetch user's category limits for frontend comparison
-            $userCategoryLimits = UserCategoryLimit::where('user_id', $userId)
-                                                    ->with('category')
-                                                    ->get()
-                                                    ->pluck('category.name') // Get just the category names
-                                                    ->toArray(); // Convert to array for easy lookup
-
-            $formattedTransactions = $transactions->map(function ($transaction) use ($userCategoryLimits) {
+            $formattedTransactions = $transactions->map(function ($transaction) {
                 $transactionType = $transaction->product ? strtoupper($transaction->product->product_type) : 'GENERAL';
                 $isOutgoing = $transaction->amount_spent < 0;
 
-                // The description as saved in DB (e.g., "Food", "Giberish", "Received from John Doe")
-                $rawDescription = $transaction->description;
-
-                // Determine display label for the category part on the frontend
-                $displayCategoryLabel = $rawDescription; // Default to raw description
-                if ($isOutgoing) {
-                    // If outgoing, check if the rawDescription matches a known category limit
-                    if (!in_array($rawDescription, $userCategoryLimits)) {
-                        $displayCategoryLabel = 'TRANSFER'; // Fallback to 'TRANSFER' if not a known category
-                    }
-                }
-                // For incoming, the rawDescription will be "Received from X", which we handle directly in frontend
+                // Determine the base description. This is the value that will be used.
+                // For outgoing, it's the category/purpose.
+                // For incoming, it's "Received from [Sender Name]".
+                // This is needed for the frontend logic to work with the correct description format.
+                $displayLabel = $transaction->description; // The description as saved in DB
 
                 // Determine the amount sign and format.
                 $displayAmount = $isOutgoing ? '-' . number_format(abs($transaction->amount_spent), 2) : '+' . number_format($transaction->amount_spent, 2);
 
-                $isPending = false; // Assuming status is always 'completed' unless explicitly set
+                $isPending = false;
 
                 return [
                     'id' => $transaction->id,
@@ -403,12 +398,12 @@ class UserController extends Controller
                     'type' => $transactionType,
                     'amount' => (float) $transaction->amount_spent,
                     'displayAmount' => $displayAmount,
-                    'description' => $displayCategoryLabel, // Pass the (possibly modified) category label to frontend
-                    'raw_description' => $rawDescription, // Keep raw description for debugging if needed
+                    'description' => $displayLabel, // Pass the original description to frontend
                     'status' => $isPending ? 'PENDING' : 'COMPLETED',
                     'is_pending' => $isPending,
-                    'sender_name' => $transaction->sender->name ?? $transaction->sender->contact_number,
-                    'receiver_name' => $transaction->receiver->name ?? $transaction->receiver->contact_number,
+                    // Pass sender and receiver names to frontend for dynamic display
+                    'sender_name' => $transaction->sender->name ?? $transaction->sender->contact_number, // MODIFIED HERE
+                    'receiver_name' => $transaction->receiver->name ?? $transaction->receiver->contact_number, // MODIFIED HERE
                 ];
             });
 

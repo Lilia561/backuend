@@ -45,12 +45,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
         Route::get('/admin/transactions', [AdminController::class, 'getAllTransactions']);
         Route::get('/admin/feedback', [AdminController::class, 'getAllFeedback']); // Admin view for all feedback
+        Route::get('admin/pending-users', [AdminController::class, 'getPendingUsers']);
+        Route::post('admin/approve-user/{id}', [AdminController::class, 'approveUser']);
+        Route::post('admin/reject-user/{id}', [AdminController::class, 'rejectUser']);
     });
 });
 
 // This route was previously outside authentication, moved inside the auth:sanctum group above.
 // If you still need it publicly accessible, move it back out.
 Route::get('/transactions/user', [UserController::class, 'getUserTransactions']);
+
+Route::post('/register', [UserController::class, 'register']);
 
 // Public routes (if any, typically login/register/forgot-password)
 // These routes are usually defined separately and do not require authentication middleware.
