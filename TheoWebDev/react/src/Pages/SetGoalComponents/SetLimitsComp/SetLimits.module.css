@@ -1,6 +1,5 @@
 /* SetLimits.module.css */
 
-
 /* Hide number input arrows (spin buttons) for WebKit browsers (Chrome, Safari) */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -75,6 +74,15 @@ input[type="number"] {
     min-height: 300px; /* Adjust min-height to balance with the right card */
 }
 
+/* Add this rule to target h2 elements inside leftColumn */
+.leftColumn h2 {
+    color: white; /* Change the color of the h2 elements to white */
+    margin-bottom: 25px; /* Adjust as needed for spacing */
+    font-size: 1.8em; /* Match the size of h2 in other cards for consistency if desired */
+    font-weight: 600;
+}
+
+
 /* Styles for the form inside the leftColumn */
 .transferForm { /* Assuming this is the class name used on your form in SetLimits.jsx */
     width: 100%;
@@ -100,15 +108,16 @@ input[type="number"] {
     font-weight: 500;
 }
 
-.transferForm .inputGroup input[type="number"] { /* Targeting the number input specifically */
+/* This targets all input types within inputGroup, including text and number */
+.transferForm .inputGroup input {
     background-color: #4a4a6b;
     border: 1px solid #6a6a90;
     border-radius: 8px;
-    padding: 14px 18px; /* More padding for input */
+    padding: 14px 18px;
     color: #ffffff;
-    font-size: 1.15em; /* Larger font size for input text */
+    font-size: 1.15em;
     width: 100%;
-    box-sizing: border-box; /* Include padding and border in the element's total width */
+    box-sizing: border-box;
     transition: all 0.3s ease;
 }
 
@@ -119,7 +128,7 @@ input[type="number"] {
 .transferForm .inputGroup input:focus {
     outline: none;
     border-color: #8e8edb;
-    box-shadow: 0 0 0 4px rgba(142, 142, 219, 0.4); /* Stronger glow on focus */
+    box-shadow: 0 0 0 4px rgba(142, 142, 219, 0.4);
 }
 
 .doneButton { /* Your "Set Weekly Limit" button */

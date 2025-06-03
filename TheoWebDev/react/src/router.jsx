@@ -9,7 +9,6 @@ import AdminPage from './Pages/AdminPageComponents/AdminPage';
 import LoginPage from './Pages/LoginComponents/LoginPage';
 import SetGoalLimitScreen from './Pages/SetGoalComponents/SetGoalLimitBase';
 import Feedback from './Pages/FeedBackComponents/FeedBack';
-import FullHistory from './Pages/HistoryPageComponents/FullHistory';
 import Transfer from './Pages/TransferComponents/Transfer';
 import OtherBanks from './Pages/BankTransferComponents/TransferWrapperComponents/TransferWrapperComp';
 import WallEtTransfer from './Pages/eWalletTransferScreenComponents/EWalletTransferComp';
@@ -45,9 +44,6 @@ function AppRouter() {
 
       {/* Login page route */}
       <Route path="/Login" element={<LoginPage />} />
-
-      {/* Login page route */}
-      <Route path="/history" element={<FullHistory />} />
 
       {/* Optional: Add a catch-all route for 404 Not Found pages or redirects */}
       {/* <Route path="*" element={<Navigate to="/" replace />} /> */}

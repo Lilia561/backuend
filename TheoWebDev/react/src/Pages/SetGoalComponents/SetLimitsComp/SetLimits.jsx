@@ -123,17 +123,8 @@ const SetLimitComp = () => {
     }
   };
 
-
   const remainingWeeklyLimit = currentWeeklyLimit - weeklySpent;
 
-  // Placeholder for GoalPlanner data - still fetch from backend
-  const goalProgress = 49;
-  const targetBalance = 1000;
-  const currentBalance = 510; // Assuming this is remaining goal, adjust as per your GoalPlanner
-  const goals = [
-    { name: 'Camera', targetAmount: 2400 },
-    { name: 'Others', targetAmount: 150 },
-  ];
 
   return (
     <div className={styles.dashboardContainer}>
@@ -232,8 +223,8 @@ const SetLimitComp = () => {
             )}
           </div>
 
-          {/* Display Category Limits */}
-          <div className={styles.categoryLimitsDisplayCard}>
+           {/* Display Category Limits */}
+          <div className={styles.transactionLimitsCard}> {/* Applied the card styling here */}
             <h2>Limits by Category</h2>
             {categoryLimits.length > 0 ? (
               <div className={styles.categoryLimitList}>
@@ -262,12 +253,6 @@ const SetLimitComp = () => {
             )}
           </div>
 
-          <GoalPlanner
-            progress={goalProgress}
-            targetBalance={targetBalance}
-            currentBalance={currentBalance}
-            goalDetails={goals}
-          />
         </div>
       </div>
     </div>

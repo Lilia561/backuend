@@ -3,6 +3,7 @@ import SettingsSection from "./SettingsSection/SettingsSection";
 import TransactionHistorySection from "./TransactionHistorySection/TransactionHistorySection";
 import DashboardSection from "./DashboardSection/DashboardSection";
 import UserManagementSection from "./UserManagementSection/UserManagementSection";
+import Feedback from "./FeedbackAdminSection/FeedbackAdmin"
 import styles from "./AdminPage.module.css"; 
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from 'react';
@@ -31,6 +32,8 @@ function AdminPage() {
         return <TransactionHistorySection />;
       case "settings":
         return <SettingsSection />;
+      case "feedback":
+        return <Feedback />;
       default:
         return <DashboardSection />;
     }
@@ -59,6 +62,12 @@ function AdminPage() {
               onClick={() => setActiveSection("transactions")}
             >
               Transactions
+            </li>
+            <li
+              className={activeSection === "feedback" ? styles.active : ""}
+              onClick={() => setActiveSection("feedback")}
+            >
+              Feedback
             </li>
             <li
               className={activeSection === "settings" ? styles.active : ""}

@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\Transaction; // MAKE SURE TO IMPORT Transaction Model
+use App\Models\Transaction;
+use App\Models\Feedback; // Import the new Feedback Model
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -247,6 +248,97 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             Log::error('Error fetching all transactions: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to fetch transactions.'], 500);
+        }
+    }
+
+    /**
+     * Store a new feedback entry.
+     * This method saves the feedback message to the database, associating it with the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeFeedback(Request $request)
+    {
+        // Ensure only authenticated users can submit feedback
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            // Validate the incoming request data for the feedback message
+            $request->validate([
+                'message' => 'required|string|max:1000', // Feedback message is required and max 1000 characters
+            ]);
+
+            // Create a new Feedback record in the database
+            $feedback = Feedback::create([
+                'user_id' => Auth::id(), // Get the ID of the currently authenticated user
+                'message' => $request->message, // The feedback message from the request
+            ]);
+
+            // Return a success response with the created feedback data
+            return response()->json(['message' => 'Feedback submitted successfully.', 'feedback' => $feedback], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Catch validation errors and return them with a 422 status code
+            return response()->json(['errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            // Catch any other exceptions and log the error
+            Log::error('Error submitting feedback: ' . $e->getMessage());
+            // Return a generic error message with a 500 status code
+            return response()->json(['message' => 'Failed to submit feedback.'], 500);
+        }
+    }
+
+    /**
+     * Get all feedback entries for admin management.
+     * Allows searching by feedback message or associated user's name.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAllFeedback(Request $request)
+    {
+        // Ensure only authenticated users (and ideally, admins) can access this.
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        // Optional: Add role-based authorization here if you have an 'admin' role
+        // if (Auth::user()->role !== 'admin') {
+        //     return response()->json(['message' => 'Unauthorized.'], 403);
+        // }
+
+        try {
+            // Start with a query for all feedback, eager load the associated user
+            $query = Feedback::with('user:id,name');
+
+            // Apply search filter if 'search' parameter is present
+            if ($request->has('search')) {
+                $searchTerm = $request->input('search');
+
+                $query->where(function ($q) use ($searchTerm) {
+                    // Search in the feedback message
+                    $q->where('message', 'like', '%' . $searchTerm . '%')
+                      // OR search in the associated user's name
+                      ->orWhereHas('user', function ($uq) use ($searchTerm) {
+                          $uq->where('name', 'like', '%' . $searchTerm . '%');
+                      });
+                });
+            }
+
+            // Order by latest feedback entries
+            $feedback = $query->latest()->get();
+
+            return response()->json([
+                'feedback' => $feedback,
+                'message' => 'Feedback retrieved successfully.'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching all feedback: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to fetch feedback.'], 500);
         }
     }
 }
