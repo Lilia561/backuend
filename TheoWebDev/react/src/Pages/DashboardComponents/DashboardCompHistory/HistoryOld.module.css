@@ -1,0 +1,109 @@
+.history-card {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.history-cardTitle {
+  margin-top: 0;
+  color: #333;
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+.history-list {
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.transaction-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.transaction-type {
+  background-color: #ffe0b2;
+  color: #ff9800;
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 0.8em;
+  margin-top: 5px;
+}
+
+.transaction-type.salary {
+  background-color: #c8e6c9;
+  color: #388e3c;
+}
+
+.transaction-type.electric-bill {
+  background-color: #bbdefb;
+  color: #1976d2;
+}
+
+.transaction-type.shopping {
+  background-color: #f3e5f5;
+  color: #9c27b0;
+}
+
+.transaction-type.food {
+  background-color: #ffccbc;
+  color: #d84315;
+}
+
+.transaction-type.transfer {
+  background-color: #e0f7fa;
+  color: #00acc1;
+}
+
+.transaction-amount {
+  font-weight: bold;
+  color: #2e7d32;
+}
+
+.transaction-amount.negative {
+  color: #d32f2f;
+}
+
+.pending {
+  background-color: #ffcc80;
+  color: #ef6c00;
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 0.8em;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view-history-btn {
+  background-color: #3498db;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9em;
+  transition: background-color 0.3s ease;
+}
+
+.view-history-btn:hover {
+  background-color: #2980b9;
+}

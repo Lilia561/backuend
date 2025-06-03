@@ -1,132 +1,126 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import './History.css'; // Ensure this CSS file exists for styling
+import styles from './History.module.css';
+import axiosClient from '../../axios';
 
 function History() {
-    // State to store transactions, loading status, and error
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [userId, setUserId] = useState(null); // State to store the current user's ID
+    const [userId, setUserId] = useState(null);
 
-    // This useEffect hook runs once when the component mounts to get the user ID
     useEffect(() => {
-        // Retrieve user_id from localStorage
-        // This assumes your login/register functions store the user_id in localStorage
         const storedUserId = localStorage.getItem('user_id');
         if (storedUserId) {
             setUserId(storedUserId);
         } else {
-            // If no user ID is found, set loading to false and indicate no user is logged in
             setLoading(false);
             setError("Please log in to view your transaction history.");
         }
-    }, []); // Empty dependency array means this effect runs only once after the initial render
+    }, []);
 
-    // This useEffect hook runs when userId changes (after it's fetched from localStorage)
     useEffect(() => {
-        // Only fetch transactions if a userId is available
         if (userId) {
             const fetchTransactions = async () => {
                 try {
-                    // Replace with your actual backend API URL.
-                    // Assuming your Laravel API is running on http://localhost:8000
-                    // and the route is /api/transactions/user
-                    // Now dynamically using the fetched userId
-                    const response = await fetch(`http://localhost:8000/api/transactions/user?user_id=${userId}`);
-
-                    // Check if the response was successful
-                    if (!response.ok) {
-                        // If response is not OK (e.g., 404, 500), throw an error
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    // Parse the JSON response
-                    const data = await response.json();
-                    setTransactions(data); // Update the state with fetched transactions
+                    const response = await axiosClient.get(`/api/transactions/user?user_id=${userId}`);
+                    setTransactions(response.data);
                 } catch (err) {
-                    // Catch any errors during the fetch operation
                     console.error("Failed to fetch transactions:", err);
-                    setError("Failed to load history. Please try again later.");
+                    setError(err.response?.data?.message || "Failed to load history. Please try again later.");
                 } finally {
-                    // Set loading to false once fetching is complete (success or error)
                     setLoading(false);
                 }
             };
 
-            fetchTransactions(); // Call the fetch function
+            fetchTransactions();
         }
-    }, [userId]); // This effect runs whenever the userId state changes
+    }, [userId]);
 
-    // Render loading state
     if (loading) {
         return (
-            <div className="history-card">
-                <div className="history-header">
+            <div className={styles['history-card']}>
+                <div className={styles['history-header']}>
                     <h2>History</h2>
-                    <Link to="/history" className="view-history-btn">
+                    <Link to="/history" className={styles['view-history-btn']}>
                         View Full History
                     </Link>
                 </div>
-                <div className="history-list">
+                <div className={styles['history-list']}>
                     <p>Loading transactions...</p>
                 </div>
             </div>
         );
     }
 
-    // Render error state (e.g., not logged in, or API error)
     if (error) {
         return (
-            <div className="history-card">
-                <div className="history-header">
+            <div className={styles['history-card']}>
+                <div className={styles['history-header']}>
                     <h2>History</h2>
-                    <Link to="/history" className="view-history-btn">
+                    <Link to="/history" className={styles['view-history-btn']}>
                         View Full History
                     </Link>
                 </div>
-                <div className="history-list">
-                    <p className="error-message">{error}</p>
+                <div className={styles['history-list']}>
+                    <p className={styles['error-message']}>{error}</p>
                 </div>
             </div>
         );
     }
 
-    // Render component with fetched data
     return (
-        <div className="history-card">
-            <div className="history-header">
+        <div className={styles['history-card']}>
+            <div className={styles['history-header']}>
                 <h2>History</h2>
-                <Link to="/history" className="view-history-btn">
-                    View Full History
-                </Link>
             </div>
 
-            <div className="history-list">
+            <div className={styles['history-list']}>
                 {transactions.length > 0 ? (
-                    // Map over the transactions array and render each item
-                    transactions.map((transaction) => (
-                        <div key={transaction.id} className="history-item">
-                            <div className="transaction-details">
-                                <span>{transaction.date}</span>
-                                {/* Dynamically apply class based on transaction type for styling */}
-                                <span className={`transaction-type ${transaction.type.toLowerCase().replace(/\s/g, '-')}`}>
-                                    {transaction.type}
-                                </span>
+                    transactions.map((transaction) => {
+                        const isOutgoing = transaction.amount < 0;
+
+                        let categoryLabel = transaction.description || ''; // This is the purpose/category from backend
+                        let transactionLabel = ''; // This will be the final display string (e.g., "Food to John Doe")
+                        let labelClass = ''; // For dynamic background color
+
+                        if (isOutgoing) {
+                            // Outgoing transaction: "Category to Recipient Name"
+                            // categoryLabel is already the purpose/category (e.g., "Food", "TRANSFER", "Giberish")
+                            const recipientName = transaction.receiver_name || 'User'; // Use actual name, fallback to 'User'
+                            transactionLabel = `${categoryLabel} to ${recipientName}`;
+                            labelClass = categoryLabel.toLowerCase().replace(/\s/g, '-'); // Create a class name from the category (e.g., "food", "transfer", "giberish")
+                        } else {
+                            // Incoming transaction: "Received from Sender Name"
+                            // Backend's description for incoming is already formatted as "Received from [Sender Name]"
+                            transactionLabel = transaction.description;
+                            labelClass = 'received'; // A fixed class for received transactions
+                        }
+
+                        return (
+                            <div key={transaction.id} className={styles['history-item']}>
+                                <div className={styles['transaction-details']}>
+                                    <span>{transaction.date}</span>
+                                    {/* Use a single span for the entire label, apply dynamic class */}
+                                    <span className={`${styles['transaction-label']} ${styles[labelClass]}`}>
+                                        {transactionLabel}
+                                    </span>
+                                </div>
+                                {transaction.is_pending ? (
+                                    <span className={styles.pending}>PENDING</span>
+                                ) : (
+                                    <span
+                                        className={`${styles['transaction-amount']} ${
+                                            isOutgoing ? styles.negative : styles.positive
+                                        }`}
+                                    >
+                                        {transaction.displayAmount}
+                                    </span>
+                                )}
                             </div>
-                            {/* Render amount or pending status */}
-                            {transaction.is_pending ? (
-                                <span className="pending">PENDING</span>
-                            ) : (
-                                <span className="transaction-amount">
-                                    {/* Format amount with currency symbol and handle sign */}
-                                    {transaction.amount < 0 ? '-' : '+'}₱{Math.abs(transaction.amount).toFixed(2)}
-                                </span>
-                            )}
-                        </div>
-                    ))
+                        );
+                    })
                 ) : (
-                    // Message if no transactions are found
                     <p>No transactions found for this user.</p>
                 )}
             </div>

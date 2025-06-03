@@ -54,3 +54,10 @@ Route::get('/transactions/user', [UserController::class, 'getUserTransactions'])
 // Route for money transfer
 Route::middleware('auth:sanctum')->post('/e-wallet/transfer', [UserController::class, 'sendMoney']);
 
+
+Route::middleware('auth:sanctum')->group(function () {
+    // ... existing routes ...
+
+    Route::post('/user/set-category-limit', [UserController::class, 'setCategoryLimit']);
+    Route::get('/user/category-limits', [UserController::class, 'getCategoryLimits']);
+});

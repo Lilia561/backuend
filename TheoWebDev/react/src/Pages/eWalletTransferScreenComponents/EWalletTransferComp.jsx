@@ -8,7 +8,7 @@ function EWalletTransferComp() {
   const [email, setEmail] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [amount, setAmount] = useState('');
-  const [purpose, setPurpose] = useState('');
+  const [categoryName, setCategoryName] = useState(''); // Changed from 'purpose' to 'categoryName'
   const [message, setMessage] = useState('');
   const [, setErrors] = useState(null); // For displaying validation errors
 
@@ -16,7 +16,7 @@ function EWalletTransferComp() {
   const emailRef = useRef();
   const contactNumberRef = useRef();
   const amountRef = useRef();
-  const purposeRef = useRef();
+  const categoryNameRef = useRef(); // Changed from 'purposeRef' to 'categoryNameRef'
 
 
   /**
@@ -38,7 +38,7 @@ function EWalletTransferComp() {
     const payload = {
       recipient_identifier: recipientIdentifier,
       amount: parseFloat(amountRef.current.value), // Convert amount to a number
-      purpose: purposeRef.current.value,
+      category_name: categoryNameRef.current.value, // Changed from 'purpose' to 'category_name'
     };
 
     // Basic client-side validation (optional, but good practice)
@@ -50,6 +50,12 @@ function EWalletTransferComp() {
       setErrors({ general: ['Please enter a valid amount greater than 0.'] });
       return;
     }
+    // Added validation for category name
+    if (!payload.category_name.trim()) {
+      setErrors({ general: ['Please provide a category for this transaction.'] });
+      return;
+    }
+
 
     try {
       // Get CSRF cookie if your Laravel setup requires it (Sanctum)
@@ -65,7 +71,7 @@ function EWalletTransferComp() {
       setEmail('');
       setContactNumber('');
       setAmount('');
-      setPurpose('');
+      setCategoryName(''); // Clear category name input
       console.log('Transfer successful:', data);
 
     } catch (error) {
@@ -134,7 +140,9 @@ function EWalletTransferComp() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="juan.delacruz@example.com"
-                required
+                // Made required optional since contact number can be used instead
+                // removed 'required' here to allow either email OR contact number.
+                // Client-side validation for 'recipient_identifier' handles at least one is present.
               />
             </div>
             <div className={styles.ewalletInputGroup}>
@@ -146,7 +154,9 @@ function EWalletTransferComp() {
                 value={contactNumber}
                 onChange={(e) => setContactNumber(e.target.value)}
                 placeholder="09XXXXXXXXX"
-                required
+                // Made required optional since email can be used instead
+                // removed 'required' here to allow either email OR contact number.
+                // Client-side validation for 'recipient_identifier' handles at least one is present.
               />
             </div>
             <div className={styles.ewalletInputGroup}>
@@ -164,14 +174,15 @@ function EWalletTransferComp() {
               />
             </div>
             <div className={styles.ewalletInputGroup}>
-              <label htmlFor="ewallet-purpose">Purpose (Optional):</label>
+              <label htmlFor="ewallet-category">Category (e.g., Food, Shopping):</label> {/* Updated label */}
               <input
-                ref={purposeRef}
+                ref={categoryNameRef} // Updated ref
                 type="text"
-                id="ewallet-purpose"
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                placeholder="e.g., Payment for goods"
+                id="ewallet-category" // Updated ID
+                value={categoryName} // Updated state variable
+                onChange={(e) => setCategoryName(e.target.value)} // Updated state setter
+                placeholder="e.g., Food, Utilities, Shopping" // Updated placeholder
+                required // Category is now required for limit tracking
               />
             </div>
             <button type="submit" className={styles.ewalletSubmitButton}>

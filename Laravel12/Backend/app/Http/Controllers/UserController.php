@@ -12,10 +12,11 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\Transaction;
 use App\Models\Product;
-use App\Models\Goal; // Make sure Goal model is imported
+use App\Models\Goal;
 use Illuminate\Support\Facades\DB;
+use App\Models\UserCategoryLimit;
+use App\Models\Category;
 
-// Removed: use function Psy\debug; - This was likely a leftover from debugging and can cause issues if Psy is not installed/configured.
 
 class UserController extends Controller
 {
@@ -29,14 +30,13 @@ class UserController extends Controller
     {
         // 1. Validate the request data
         $request->validate([
-            'recipient_identifier' => ['required', 'string'], // Email or contact number of recipient
-            'amount' => ['required', 'numeric', 'min:0.01'], // Amount must be positive
-            'purpose' => ['nullable', 'string', 'max:255'],  // Optional purpose/description
+            'recipient_identifier' => ['required', 'string'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'purpose' => ['nullable', 'string', 'max:255'],
+            'category_name' => ['nullable', 'string', 'max:255'], // category_name is now passed from frontend
         ]);
 
-        // Get the authenticated sender
-        // This assumes the API route is protected by 'auth:sanctum' middleware
-        /** @var User $sender */ // <--- ADDED: Type hint for IDE
+        /** @var User $sender */
         $sender = Auth::user();
 
         if (!$sender) {
@@ -44,15 +44,17 @@ class UserController extends Controller
         }
 
         $transferAmount = $request->input('amount');
-        $purpose = $request->input('purpose', 'E-Wallet Transfer'); // Default purpose if not provided
+        // Retrieve the category_name from the request, which now directly comes from the "Purpose/Category" field
+        // This description is what will be saved in the database for the sender's transaction
+        $descriptionForSenderTransaction = $request->input('category_name') ?: ($request->input('purpose', 'TRANSFER')); // MODIFIED: Default to 'TRANSFER' if no category/purpose
+
 
         // Prevent self-transfer
         if ($sender->email === $request->input('recipient_identifier') || $sender->contact_number === $request->input('recipient_identifier')) {
             return response()->json(['message' => 'Cannot send money to yourself.'], 400);
         }
 
-        // 2. Find the recipient
-        /** @var User $recipient */ // <--- ADDED: Type hint for IDE
+        /** @var User $recipient */
         $recipient = User::where('email', $request->input('recipient_identifier'))
                         ->orWhere('contact_number', $request->input('recipient_identifier'))
                         ->first();
@@ -61,7 +63,6 @@ class UserController extends Controller
             return response()->json(['message' => 'Recipient not found.'], 404);
         }
 
-        // 3. Check if sender has sufficient balance
         if ($sender->current_money < $transferAmount) {
             return response()->json(['message' => 'Insufficient balance.'], 400);
         }
@@ -69,7 +70,6 @@ class UserController extends Controller
         // --- Weekly Spending Limit Check (Warning Only) ---
         $warningMessage = null;
         if ($sender->weekly_limit > 0) {
-            // Ensure weekly_spent_amount is reset if a new week has started
             $this->resetWeeklySpentIfNewWeek($sender);
 
             $projectedSpent = $sender->weekly_spent_amount + $transferAmount;
@@ -79,22 +79,15 @@ class UserController extends Controller
             }
         }
 
-        // 4. Perform the transaction using a database transaction
-        // This ensures that either all database operations succeed, or none of them do.
         DB::beginTransaction();
 
         try {
-            // Deduct from sender's balance
             $sender->current_money -= $transferAmount;
             $sender->save();
 
-            // Add to recipient's balance
             $recipient->current_money += $transferAmount;
             $recipient->save();
 
-            // Find or create a 'Transfer' product type for transactions
-            // IMPORTANT: Ensure you have a 'TRANSFER' product_type in your 'products' table.
-            // You might want to seed this product type if it doesn't exist.
             $transferProduct = Product::firstOrCreate(
                 ['product_type' => 'TRANSFER'],
                 ['created_at' => now(), 'updated_at' => now()]
@@ -108,11 +101,12 @@ class UserController extends Controller
                 'transaction_date' => now(),
                 'amount_spent' => -$transferAmount, // Store as negative, interpret as spent/debit
                 'product_id' => $transferProduct->id,
-                'description' => 'Sent to ' . ($recipient->name ?: $recipient->contact_number) . ': ' . $purpose,
+                'description' => $descriptionForSenderTransaction, // Saves ONLY the purpose/category provided by user
                 'status' => 'completed',
             ]);
 
             // Record transaction for the recipient (Credit)
+            // This remains 'Received from [sender's name/contact]'
             Transaction::create([
                 'user_id' => $recipient->id,
                 'sender_id' => $sender->id,
@@ -120,23 +114,36 @@ class UserController extends Controller
                 'transaction_date' => now(),
                 'amount_spent' => +$transferAmount, // Store as positive, interpret as received/credit
                 'product_id' => $transferProduct->id,
-                'description' => 'Received from ' . ($sender->name ?: $sender->contact_number) . ': ' . $purpose,
+                'description' => 'Received from ' . ($sender->name ?: $sender->contact_number), // This correctly sets received description
                 'status' => 'completed',
             ]);
 
-            // Update weekly_spent_amount for sender if it's a debit transaction
-            // Only count outgoing money towards limit. Make sure to reset if needed.
-            // The resetWeeklySpentIfNewWeek ensures last_week_reset is correct.
-            // Re-fetch sender to get the latest state including last_week_reset,
-            // as it might have been updated by resetWeeklySpentIfNewWeek.
             $sender = User::find($sender->id);
-            $this->resetWeeklySpentIfNewWeek($sender); // Ensure reset before adding
-            if ($transferAmount > 0) { // Only count outgoing money towards limit
+            $this->resetWeeklySpentIfNewWeek($sender);
+            if ($transferAmount > 0) {
                 $sender->weekly_spent_amount += $transferAmount;
                 $sender->save();
             }
 
-            DB::commit(); // Commit the transaction if all operations are successful
+            // --- Update Category Spending Limit ---
+            // Use the $descriptionForSenderTransaction as the category name for tracking
+            if ($descriptionForSenderTransaction && $transferAmount > 0) { // Only track outgoing expenses for categories
+                $category = Category::firstOrCreate(['name' => $descriptionForSenderTransaction]); // MODIFIED: Use $descriptionForSenderTransaction
+
+                $userCategoryLimit = UserCategoryLimit::where('user_id', $sender->id)
+                                                    ->where('category_id', $category->id)
+                                                    ->first();
+
+                if ($userCategoryLimit) {
+                    $userCategoryLimit->current_spent_amount += $transferAmount;
+                    $userCategoryLimit->save();
+                } else {
+                    Log::info("Transaction for category '{$descriptionForSenderTransaction}' occurred, but no specific limit is set for user {$sender->id}.");
+                }
+            }
+
+
+            DB::commit();
 
             $response = [
                 'message' => 'Money sent successfully!',
@@ -151,7 +158,7 @@ class UserController extends Controller
             return response()->json($response, 200);
 
         } catch (\Exception $e) {
-            DB::rollBack(); // Rollback on error
+            DB::rollBack();
             Log::error('Money transfer failed: ' . $e->getMessage(), [
                 'sender_id' => $sender->id,
                 'recipient_identifier' => $request->input('recipient_identifier'),
@@ -181,19 +188,14 @@ class UserController extends Controller
      */
     public function showMoney(Request $request)
     {
-        // Ensure the user is authenticated.
-        // This relies on your API routes being protected by a middleware like 'auth:sanctum'.
         if (!Auth::check()) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        // Get the currently authenticated user
         $user = Auth::user();
 
-        // Access the 'current_money' attribute from the user model
         $currentMoney = $user->current_money;
 
-        // Return the current money in a JSON response
         return response()->json([
             'user_id' => $user->id,
             'current_money' => $currentMoney,
@@ -210,44 +212,36 @@ class UserController extends Controller
      */
     public function register(Request $request)
     {
-        // Validate the incoming request data for registration
         $request->validate([
-            'name' => ['required', 'string', 'max:255'], // Added: Validation for the name attribute
+            'name' => ['required', 'string', 'max:255'],
             'contact_number' => ['required', 'string', 'unique:users,contact_number'],
             'email' => ['nullable', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'], // 'confirmed' checks for password_confirmation field
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         try {
-            // Create the new user
             $user = User::create([
-                'name' => $request->name, // Added: Storing the name attribute
+                'name' => $request->name,
                 'contact_number' => $request->contact_number,
                 'email' => $request->email,
-                'password' => Hash::make($request->password), // Hash the password before storing
+                'password' => Hash::make($request->password),
             ]);
 
-            // Generate an API token for the newly created user
-            // 'api_token' is the name of the token, you can choose any name.
             $token = $user->createToken('api_token')->plainTextToken;
 
-            // Return a successful JSON response with the user and token
             return response()->json([
                 'user' => $user,
                 'token' => $token,
                 'message' => 'Registration successful!'
-            ], 201); // 201 Created status code
+            ], 201);
 
         } catch (\Exception $e) {
-            // Catch any exceptions during user creation or token generation
-            // Log the error for debugging purposes
             Log::error('User registration failed: ' . $e->getMessage());
 
-            // Return an error response
             return response()->json([
                 'message' => 'Registration failed. Please try again later.',
-                'error' => $e->getMessage() // Only include error message in development, not production
-            ], 500); // 500 Internal Server Error
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -262,9 +256,8 @@ class UserController extends Controller
     public function login(Request $request)
     {
 
-        // Validate the incoming request data
         $request->validate([
-            'identifier' => ['required', 'string'], // Can be email or contact number
+            'identifier' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
@@ -272,50 +265,40 @@ class UserController extends Controller
         $password = $request->input('password');
         $email = $request->input("email");
 
-        // Check for specific admin credentials first
         $adminEmail = 'advirato@gmail.com';
         $adminPassword = 'adminwhyadminidontknow12';
 
-        // Check if the provided credentials match the hardcoded admin ones
         if ($email === $adminEmail && $password === $adminPassword) {
-            // Find the user by email for this specific admin login
             $user = User::where('email', $adminEmail)->first();
 
-            // If the admin user does not exist in the database, create them (or handle as an error)
             if (!$user) {
                 $user = User::create([
                     'name' => 'Admin User',
                     'email' => $adminEmail,
-                    'contact_number' => '00000000', // <-- CHANGED THIS LINE TO EIGHT ZEROES
+                    'contact_number' => '00000000',
                     'password' => Hash::make($adminPassword),
                     'status' => 'approved',
                     'role' => 'admin'
                 ]);
             } else {
-                 // Update password if it's not hashed or to match our specific hardcoded one.
-                 // In a real app, the admin password should be hashed in the DB.
                  if (!Hash::check($adminPassword, $user->password)) {
                      $user->password = Hash::make($adminPassword);
                      $user->save();
                  }
-                 // Ensure the contact number is also updated if the user already exists
                  if ($user->contact_number !== '00000000') {
-                     $user->contact_number = '00000000'; // <-- ENSURE EXISTING ADMIN GETS THIS TOO
+                     $user->contact_number = '00000000';
                      $user->save();
                  }
-                 if ($user->role !== 'admin') { // <--- This checks if role is NOT admin
-                     $user->role = 'admin';     // <--- This updates it to admin if needed
+                 if ($user->role !== 'admin') {
+                     $user->role = 'admin';
                  }
                  $user->save();
             }
 
-            // Revoke old tokens for this admin user if necessary
             $user->tokens()->where('name', 'admin_token')->delete();
 
-            // Create a new API token for the authenticated admin user
             $token = $user->createToken('admin_token')->plainTextToken;
 
-            // Return success response, explicitly indicating admin status
             return response()->json([
                 'token' => $token,
                 'user_id' => $user->id,
@@ -324,8 +307,6 @@ class UserController extends Controller
             ]);
         }
 
-        // --- Standard User Login Logic (if not the specific admin credentials) ---
-        // ... (this part remains unchanged)
         $user = null;
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
             $user = User::where('email', $identifier)->first();
@@ -369,66 +350,71 @@ class UserController extends Controller
      */
     public function getUserTransactions(Request $request)
     {
-        // --- IMPORTANT: AUTHENTICATION AND USER ID HANDLING ---
-        // In a real-world application, you would typically get the user ID
-        // from the authenticated user (e.g., using Laravel Sanctum, Passport, or session).
-        // For demonstration purposes, we'll use a query parameter.
-        // Replace this with actual authentication logic in a production environment.
-        $userId = $request->query('user_id'); // Example: access with /api/transactions/user?user_id=1
+        // Prioritize authenticated user's ID. Fallback to query parameter for testing/specific cases.
+        $userId = Auth::id();
 
-        // If no user ID is provided, or if the user is not authenticated,
-        // you might want to return an error or a default.
         if (!$userId) {
-            // For now, let's assume a default user ID for testing if none is provided.
-            // In production, you would typically return a 401 Unauthorized response.
-            // return response()->json(['message' => 'User ID is required or unauthorized.'], 401);
-            $userId = 1; // Default to user ID 1 for testing purposes.
-                         // REMEMBER TO REPLACE THIS WITH AUTHENTICATED USER ID!
+            $userId = $request->query('user_id');
+        }
+
+        if (!$userId) {
+            return response()->json(['message' => 'User ID is required or unauthorized.'], 401);
         }
 
         try {
-            // Fetch transactions for the given user ID.
-            // Eager load the 'product' relationship to get the product_type efficiently.
-            // Order by transaction_date in descending order to show latest first.
+            // Eager load product, sender, and receiver relationships to get names
             $transactions = Transaction::where('user_id', $userId)
-                                ->with('product') // Assumes a 'product' relationship in your Transaction model
+                                ->with('product', 'sender', 'receiver') // ADDED: Eager load sender and receiver
                                 ->orderBy('transaction_date', 'desc')
                                 ->get();
 
-            // Format the transactions to match the structure expected by your React component.
-            $formattedTransactions = $transactions->map(function ($transaction) {
-                // Determine the transaction type. If a product is linked, use its type; otherwise, default to 'GENERAL'.
+            // Fetch user's category limits for frontend comparison
+            $userCategoryLimits = UserCategoryLimit::where('user_id', $userId)
+                                                    ->with('category')
+                                                    ->get()
+                                                    ->pluck('category.name') // Get just the category names
+                                                    ->toArray(); // Convert to array for easy lookup
+
+            $formattedTransactions = $transactions->map(function ($transaction) use ($userCategoryLimits) {
                 $transactionType = $transaction->product ? strtoupper($transaction->product->product_type) : 'GENERAL';
+                $isOutgoing = $transaction->amount_spent < 0;
+
+                // The description as saved in DB (e.g., "Food", "Giberish", "Received from John Doe")
+                $rawDescription = $transaction->description;
+
+                // Determine display label for the category part on the frontend
+                $displayCategoryLabel = $rawDescription; // Default to raw description
+                if ($isOutgoing) {
+                    // If outgoing, check if the rawDescription matches a known category limit
+                    if (!in_array($rawDescription, $userCategoryLimits)) {
+                        $displayCategoryLabel = 'TRANSFER'; // Fallback to 'TRANSFER' if not a known category
+                    }
+                }
+                // For incoming, the rawDescription will be "Received from X", which we handle directly in frontend
 
                 // Determine the amount sign and format.
-                // The amount_spent is stored as a positive value, we need to add the sign based on context.
-                // For simplicity, we'll assume negative for all, and positive for 'SALARY' or 'INCOME' types.
-                // You might have a 'transaction_type' column in your transactions table for this.
-                $isPositive = in_array($transactionType, ['SALARY', 'INCOME', 'DEPOSIT']);
-                // Corrected: Use abs() for negative amounts to ensure correct formatting with the '-' prefix
-                $displayAmount = $isPositive ? '+' . number_format($transaction->amount_spent, 2) : '-' . number_format(abs($transaction->amount_spent), 2);
+                $displayAmount = $isOutgoing ? '-' . number_format(abs($transaction->amount_spent), 2) : '+' . number_format($transaction->amount_spent, 2);
 
-                // For the "PENDING" status, you would typically have a 'status' column in your transactions table.
-                // For this example, we'll assume all fetched transactions are 'COMPLETED' unless explicitly marked.
-                $isPending = false; // Set to true if you have a 'status' column and it's 'pending'
+                $isPending = false; // Assuming status is always 'completed' unless explicitly set
 
                 return [
                     'id' => $transaction->id,
-                    'date' => Carbon::parse($transaction->transaction_date)->format('m/d/Y'), // Format date as MM/DD/YYYY
+                    'date' => Carbon::parse($transaction->transaction_date)->format('m/d/Y'),
                     'type' => $transactionType,
-                    'amount' => $transaction->amount_spent, // Keep original amount for calculations if needed
-                    'displayAmount' => $displayAmount, // Formatted string for display
-                    'description' => $transaction->description,
+                    'amount' => (float) $transaction->amount_spent,
+                    'displayAmount' => $displayAmount,
+                    'description' => $displayCategoryLabel, // Pass the (possibly modified) category label to frontend
+                    'raw_description' => $rawDescription, // Keep raw description for debugging if needed
                     'status' => $isPending ? 'PENDING' : 'COMPLETED',
                     'is_pending' => $isPending,
+                    'sender_name' => $transaction->sender->name ?? $transaction->sender->contact_number,
+                    'receiver_name' => $transaction->receiver->name ?? $transaction->receiver->contact_number,
                 ];
             });
 
-            // Return the formatted transactions as a JSON response.
             return response()->json($formattedTransactions);
 
         } catch (\Exception $e) {
-            // Log the error and return a server error response.
             Log::error('Error fetching user transactions: ' . $e->getMessage());
             return response()->json(['message' => 'Error fetching transactions. Please try again later.'], 500);
         }
@@ -442,14 +428,12 @@ class UserController extends Controller
      */
     public function storeGoal(Request $request)
     {
-        // Validate the incoming request data
         $request->validate([
             'purpose' => ['required', 'string', 'max:255'],
             'target_balance' => ['required', 'numeric', 'min:0.01'],
             'target_date' => ['nullable', 'date', 'after_or_equal:today'],
         ]);
 
-        // Get the authenticated user
         $user = Auth::user();
 
         if (!$user) {
@@ -457,19 +441,18 @@ class UserController extends Controller
         }
 
         try {
-            // Create the new goal
             $goal = Goal::create([
                 'user_id' => $user->id,
                 'purpose' => $request->purpose,
                 'target_balance' => $request->target_balance,
-                'current_progress' => 0.00, // New goals start with 0 progress
+                'current_progress' => 0.00,
                 'target_date' => $request->target_date ? Carbon::parse($request->target_date) : null,
             ]);
 
             return response()->json([
                 'message' => 'Goal created successfully!',
-                'goal' => $goal // Make sure to return the created goal object
-            ], 201); // 201 Created status code
+                'goal' => $goal
+            ], 201);
 
         } catch (\Exception $e) {
             Log::error('Error creating goal: ' . $e->getMessage());
@@ -485,7 +468,6 @@ class UserController extends Controller
      */
     public function getUserGoals(Request $request)
     {
-        // Get the authenticated user
         $user = Auth::user();
 
         if (!$user) {
@@ -493,19 +475,17 @@ class UserController extends Controller
         }
 
         try {
-            // Fetch all goals for the authenticated user
             $goals = Goal::where('user_id', $user->id)
-                         ->orderBy('target_date', 'asc') // Order by target date
+                         ->orderBy('target_date', 'asc')
                          ->get();
 
-            // Format the goals for the frontend
             $formattedGoals = $goals->map(function ($goal) {
                 return [
                     'id' => $goal->id,
                     'purpose' => $goal->purpose,
-                    'targetAmount' => (float) $goal->target_balance, // Cast to float for JS
-                    'currentProgress' => (float) $goal->current_progress, // Cast to float
-                    'targetDate' => $goal->target_date ? Carbon::parse($goal->target_date)->format('Y-m-d') : null, // Format date
+                    'targetAmount' => (float) $goal->target_balance,
+                    'currentProgress' => (float) $goal->current_progress,
+                    'targetDate' => $goal->target_date ? Carbon::parse($goal->target_date)->format('Y-m-d') : null,
                     'progressPercentage' => $goal->target_balance > 0 ? round(($goal->current_progress / $goal->target_balance) * 100) : 0,
                 ];
             });
@@ -526,35 +506,24 @@ class UserController extends Controller
      */
     public function getUserProfile(Request $request)
     {
-        // Ensure the user is authenticated.
         if (!Auth::check()) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        // Get the currently authenticated user
         $user = Auth::user();
 
-        // Return the user's details
         return response()->json([
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'contact_number' => $user->contact_number,
-            'current_money' => $user->current_money, // You can include this if needed
+            'current_money' => $user->current_money,
             'message' => 'User profile retrieved successfully.'
         ]);
     }
 
-    // This method seems to be a leftover or duplicate,
-    // as showMoney already provides authenticated user's money.
-    // If 'token' refers to fetching the token itself, it should be in AuthController or similar.
-    // Given its name and context, it's unclear, but I'm keeping it as is per your original file.
     public function token(Request $request)
     {
-        // This is a placeholder; you might have a specific logic here.
-        // For Sanctum, tokens are usually generated on login.
-        // If this is meant to return the current user's token, it's not standard for a GET request.
-        // It's likely intended to return `Auth::user()` if the route is middleware('auth:sanctum').
         return response()->json(['message' => 'Token endpoint reached.']);
     }
 
@@ -567,56 +536,46 @@ class UserController extends Controller
      */
     public function getFinancialProgressData(Request $request)
     {
-        // Ensure the user is authenticated.
-        $userId = Auth::id(); // Get the authenticated user's ID
+        $userId = Auth::id();
 
         if (!$userId) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
         try {
-            // Fetch all transactions for the authenticated user, ordered by date.
             $transactions = Transaction::where('user_id', $userId)
                                 ->orderBy('transaction_date', 'asc')
                                 ->get();
 
-            // Initialize data structures for daily, weekly, and monthly progress
             $dailyProgress = [];
             $weeklyProgress = [];
             $monthlyProgress = [];
 
-            // Process transactions to calculate daily net changes
             foreach ($transactions as $transaction) {
                 $date = Carbon::parse($transaction->transaction_date);
-                $dayKey = $date->format('Y-m-d'); // e.g., '2025-06-02'
-                $dayName = $date->format('D'); // e.g., 'Mon'
+                $dayKey = $date->format('Y-m-d');
+                $dayName = $date->format('D');
 
-                // Sum amounts for each day
                 if (!isset($dailyProgress[$dayKey])) {
                     $dailyProgress[$dayKey] = ['name' => $dayName, 'progress' => 0];
                 }
                 $dailyProgress[$dayKey]['progress'] += (float) $transaction->amount_spent;
             }
 
-            // Convert daily progress to a simple array for the frontend
             $formattedDaily = array_values($dailyProgress);
 
-            // Calculate weekly and monthly progress from daily progress
-            // This approach ensures that weekly/monthly aggregates are based on the daily net changes.
             foreach ($dailyProgress as $dateKey => $data) {
                 $date = Carbon::parse($dateKey);
 
-                // Weekly aggregation
-                $weekKey = $date->startOfWeek()->format('Y-W'); // e.g., '2025-23' (Year-Week number)
-                $weekName = 'Week ' . $date->weekOfYear; // e.g., 'Week 23'
+                $weekKey = $date->startOfWeek()->format('Y-W');
+                $weekName = 'Week ' . $date->weekOfYear;
                 if (!isset($weeklyProgress[$weekKey])) {
                     $weeklyProgress[$weekKey] = ['name' => $weekName, 'progress' => 0];
                 }
                 $weeklyProgress[$weekKey]['progress'] += $data['progress'];
 
-                // Monthly aggregation
-                $monthKey = $date->format('Y-M'); // e.g., '2025-Jun'
-                $monthName = $date->format('M'); // e.g., 'Jun'
+                $monthKey = $date->format('Y-M');
+                $monthName = $date->format('M');
                 if (!isset($monthlyProgress[$monthKey])) {
                     $monthlyProgress[$monthKey] = ['name' => $monthName, 'progress' => 0];
                 }
@@ -658,7 +617,6 @@ class UserController extends Controller
             'purpose' => ['required', 'string', 'max:255'],
             'target_balance' => ['required', 'numeric', 'min:0.01'],
             'target_date' => ['nullable', 'date', 'after_or_equal:today'],
-            // current_progress might be updated separately, or here if needed
         ]);
 
         try {
@@ -700,9 +658,6 @@ class UserController extends Controller
     }
 
 
-   
-    // ... (existing methods like sendMoney, show, showMoney, register, login, getUserTransactions, storeGoal, getUserGoals, getUserProfile, token)
-
     /**
      * Set the weekly spending limit for the authenticated user.
      *
@@ -723,9 +678,6 @@ class UserController extends Controller
 
         try {
             $user->weekly_limit = $request->weekly_limit;
-            // Optionally, reset weekly_spent_amount and last_week_reset when setting a new limit
-            // $user->weekly_spent_amount = 0;
-            // $user->last_week_reset = now();
             $user->save();
 
             return response()->json([
@@ -752,7 +704,6 @@ class UserController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        // Ensure weekly spent amount is reset if a new week has started
         $this->resetWeeklySpentIfNewWeek($user);
 
         return response()->json([
@@ -772,24 +723,87 @@ class UserController extends Controller
         $now = Carbon::now();
         $lastReset = $user->last_week_reset ? Carbon::parse($user->last_week_reset) : null;
 
-        // If last_week_reset is null or if the current week is different from the last reset week
         if (!$lastReset || $now->weekOfYear !== $lastReset->weekOfYear || $now->year !== $lastReset->year) {
             $user->weekly_spent_amount = 0;
-            $user->last_week_reset = $now->startOfWeek(); // Set to the beginning of the current week
+            $user->last_week_reset = $now->startOfWeek();
             $user->save();
         }
     }
 
+    /**
+     * Set a category-specific spending limit for the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function setCategoryLimit(Request $request)
+    {
+        $request->validate([
+            'category_name' => 'required|string|max:255',
+            'limit_amount' => ['required', 'numeric', 'min:0'],
+        ]);
 
+        /** @var User $user */
+        $user = Auth::user();
 
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
 
-    
+        $category = Category::firstOrCreate(['name' => $request->category_name]);
 
+        $userCategoryLimit = UserCategoryLimit::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'category_id' => $category->id,
+            ],
+            [
+                'limit_amount' => $request->limit_amount,
+            ]
+        );
 
+        return response()->json([
+            'message' => 'Category limit set successfully!',
+            'limit' => $userCategoryLimit,
+        ]);
+    }
 
+    /**
+     * Get all category-specific spending limits and current spent amounts for the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getCategoryLimits(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
 
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
 
+        try {
+            $limits = UserCategoryLimit::where('user_id', $user->id)
+                                        ->with('category')
+                                        ->get()
+                                        ->map(function($limit) {
+                                            $remaining = (float) $limit->limit_amount - (float) $limit->current_spent_amount;
+                                            return [
+                                                'id' => $limit->id,
+                                                'category_name' => $limit->category ? $limit->category->name : 'Uncategorized',
+                                                'limit_amount' => (float) $limit->limit_amount,
+                                                'current_spent_amount' => (float) $limit->current_spent_amount,
+                                                'remaining' => $remaining,
+                                                'progressPercentage' => $limit->limit_amount > 0 ? round(((float)$limit->current_spent_amount / (float)$limit->limit_amount) * 100) : 0,
+                                            ];
+                                        });
 
+            return response()->json(['category_limits' => $limits]);
 
-
+        } catch (\Exception $e) {
+            Log::error('Error fetching category limits: ' . $e->getMessage());
+            return response()->json(['message' => 'Error fetching category limits. Please try again later.'], 500);
+        }
+    }
 }
