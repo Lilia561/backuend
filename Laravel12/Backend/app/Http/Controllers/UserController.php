@@ -12,126 +12,156 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\Transaction;
 use App\Models\Product;
-use App\Models\Goal;
+use App\Models\Goal; // Make sure Goal model is imported
 use Illuminate\Support\Facades\DB;
 
-use function Psy\debug;
+// Removed: use function Psy\debug; - This was likely a leftover from debugging and can cause issues if Psy is not installed/configured.
 
 class UserController extends Controller
 {
     /**
- * Handle the money transfer between users.
- *
- * @param  \Illuminate\Http\Request  $request
- * @return \Illuminate\Http\JsonResponse
- */
-public function sendMoney(Request $request)
-{
-    // 1. Validate the request data
-    $request->validate([
-        'recipient_identifier' => ['required', 'string'], // Email or contact number of recipient
-        'amount' => ['required', 'numeric', 'min:0.01'], // Amount must be positive
-        'purpose' => ['nullable', 'string', 'max:255'],  // Optional purpose/description
-    ]);
-
-    // Get the authenticated sender
-    // This assumes the API route is protected by 'auth:sanctum' middleware
-    /** @var User $sender */ // <--- ADDED: Type hint for IDE
-    $sender = Auth::user();
-
-    if (!$sender) {
-        return response()->json(['message' => 'Unauthorized: Sender not authenticated.'], 401);
-    }
-
-    $transferAmount = $request->input('amount');
-    $purpose = $request->input('purpose', 'E-Wallet Transfer'); // Default purpose if not provided
-
-    // Prevent self-transfer
-    if ($sender->email === $request->input('recipient_identifier') || $sender->contact_number === $request->input('recipient_identifier')) {
-        return response()->json(['message' => 'Cannot send money to yourself.'], 400);
-    }
-
-    // 2. Find the recipient
-    /** @var User $recipient */ // <--- ADDED: Type hint for IDE
-    $recipient = User::where('email', $request->input('recipient_identifier'))
-                     ->orWhere('contact_number', $request->input('recipient_identifier'))
-                     ->first();
-
-    if (!$recipient) {
-        return response()->json(['message' => 'Recipient not found.'], 404);
-    }
-
-    // 3. Check if sender has sufficient balance
-    if ($sender->current_money < $transferAmount) {
-        return response()->json(['message' => 'Insufficient balance.'], 400);
-    }
-
-    // 4. Perform the transaction using a database transaction
-    // This ensures that either all database operations succeed, or none of them do.
-    DB::beginTransaction();
-
-    try {
-        // Deduct from sender's balance
-        $sender->current_money -= $transferAmount;
-        $sender->save();
-
-        // Add to recipient's balance
-        $recipient->current_money += $transferAmount;
-        $recipient->save();
-
-        // Find or create a 'Transfer' product type for transactions
-        // IMPORTANT: Ensure you have a 'TRANSFER' product_type in your 'products' table.
-        // You might want to seed this product type if it doesn't exist.
-        $transferProduct = Product::firstOrCreate(
-            ['product_type' => 'TRANSFER'],
-            ['created_at' => now(), 'updated_at' => now()] // Add timestamps if needed
-        );
-
-        // Record transaction for the sender (Debit)
-        Transaction::create([
-            'user_id' => $sender->id,
-            'sender_id' => $sender->id,    // ADDED: Sender ID for the transaction
-            'receiver_id' => $recipient->id, // ADDED: Receiver ID for the transaction
-            'transaction_date' => now(),
-            'amount_spent' => -$transferAmount, // Store as negative, interpret as spent/debit
-            'product_id' => $transferProduct->id,
-            'description' => 'Sent to ' . ($recipient->name ?: $recipient->contact_number) . ': ' . $purpose,
-            'status' => 'completed', // ADDED: Set transaction status
+     * Handle the money transfer between users.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function sendMoney(Request $request)
+    {
+        // 1. Validate the request data
+        $request->validate([
+            'recipient_identifier' => ['required', 'string'], // Email or contact number of recipient
+            'amount' => ['required', 'numeric', 'min:0.01'], // Amount must be positive
+            'purpose' => ['nullable', 'string', 'max:255'],  // Optional purpose/description
         ]);
 
-        // Record transaction for the recipient (Credit)
-        Transaction::create([
-            'user_id' => $recipient->id,
-            'sender_id' => $sender->id,    // ADDED: Sender ID for the transaction
-            'receiver_id' => $recipient->id, // ADDED: Receiver ID for the transaction
-            'transaction_date' => now(),
-            'amount_spent' => +$transferAmount, // Store as positive, interpret as received/credit
-            'product_id' => $transferProduct->id,
-            'description' => 'Received from ' . ($sender->name ?: $sender->contact_number) . ': ' . $purpose,
-            'status' => 'completed', // ADDED: Set transaction status
-        ]);
+        // Get the authenticated sender
+        // This assumes the API route is protected by 'auth:sanctum' middleware
+        /** @var User $sender */ // <--- ADDED: Type hint for IDE
+        $sender = Auth::user();
 
-        DB::commit(); // Commit the transaction if all operations are successful
+        if (!$sender) {
+            return response()->json(['message' => 'Unauthorized: Sender not authenticated.'], 401);
+        }
 
-        return response()->json([
-            'message' => 'Money sent successfully!',
-            'sender_new_balance' => $sender->current_money,
-            'recipient_new_balance' => $recipient->current_money,
-        ], 200);
+        $transferAmount = $request->input('amount');
+        $purpose = $request->input('purpose', 'E-Wallet Transfer'); // Default purpose if not provided
 
-    } catch (\Exception $e) {
-        DB::rollBack(); // Rollback on error
-        Log::error('Money transfer failed: ' . $e->getMessage(), [
-            'sender_id' => $sender->id,
-            'recipient_identifier' => $request->input('recipient_identifier'),
-            'amount' => $transferAmount,
-            'error_trace' => $e->getTraceAsString(),
-        ]);
+        // Prevent self-transfer
+        if ($sender->email === $request->input('recipient_identifier') || $sender->contact_number === $request->input('recipient_identifier')) {
+            return response()->json(['message' => 'Cannot send money to yourself.'], 400);
+        }
 
-        return response()->json(['message' => 'Money transfer failed. Please try again.'], 500);
+        // 2. Find the recipient
+        /** @var User $recipient */ // <--- ADDED: Type hint for IDE
+        $recipient = User::where('email', $request->input('recipient_identifier'))
+                        ->orWhere('contact_number', $request->input('recipient_identifier'))
+                        ->first();
+
+        if (!$recipient) {
+            return response()->json(['message' => 'Recipient not found.'], 404);
+        }
+
+        // 3. Check if sender has sufficient balance
+        if ($sender->current_money < $transferAmount) {
+            return response()->json(['message' => 'Insufficient balance.'], 400);
+        }
+
+        // --- Weekly Spending Limit Check (Warning Only) ---
+        $warningMessage = null;
+        if ($sender->weekly_limit > 0) {
+            // Ensure weekly_spent_amount is reset if a new week has started
+            $this->resetWeeklySpentIfNewWeek($sender);
+
+            $projectedSpent = $sender->weekly_spent_amount + $transferAmount;
+            if ($projectedSpent > $sender->weekly_limit) {
+                $overAmount = $projectedSpent - $sender->weekly_limit;
+                $warningMessage = "Warning: This transaction will put you ₱" . number_format($overAmount, 2) . " over your weekly spending limit of ₱" . number_format($sender->weekly_limit, 2) . ".";
+            }
+        }
+
+        // 4. Perform the transaction using a database transaction
+        // This ensures that either all database operations succeed, or none of them do.
+        DB::beginTransaction();
+
+        try {
+            // Deduct from sender's balance
+            $sender->current_money -= $transferAmount;
+            $sender->save();
+
+            // Add to recipient's balance
+            $recipient->current_money += $transferAmount;
+            $recipient->save();
+
+            // Find or create a 'Transfer' product type for transactions
+            // IMPORTANT: Ensure you have a 'TRANSFER' product_type in your 'products' table.
+            // You might want to seed this product type if it doesn't exist.
+            $transferProduct = Product::firstOrCreate(
+                ['product_type' => 'TRANSFER'],
+                ['created_at' => now(), 'updated_at' => now()]
+            );
+
+            // Record transaction for the sender (Debit)
+            Transaction::create([
+                'user_id' => $sender->id,
+                'sender_id' => $sender->id,
+                'receiver_id' => $recipient->id,
+                'transaction_date' => now(),
+                'amount_spent' => -$transferAmount, // Store as negative, interpret as spent/debit
+                'product_id' => $transferProduct->id,
+                'description' => 'Sent to ' . ($recipient->name ?: $recipient->contact_number) . ': ' . $purpose,
+                'status' => 'completed',
+            ]);
+
+            // Record transaction for the recipient (Credit)
+            Transaction::create([
+                'user_id' => $recipient->id,
+                'sender_id' => $sender->id,
+                'receiver_id' => $recipient->id,
+                'transaction_date' => now(),
+                'amount_spent' => +$transferAmount, // Store as positive, interpret as received/credit
+                'product_id' => $transferProduct->id,
+                'description' => 'Received from ' . ($sender->name ?: $sender->contact_number) . ': ' . $purpose,
+                'status' => 'completed',
+            ]);
+
+            // Update weekly_spent_amount for sender if it's a debit transaction
+            // Only count outgoing money towards limit. Make sure to reset if needed.
+            // The resetWeeklySpentIfNewWeek ensures last_week_reset is correct.
+            // Re-fetch sender to get the latest state including last_week_reset,
+            // as it might have been updated by resetWeeklySpentIfNewWeek.
+            $sender = User::find($sender->id);
+            $this->resetWeeklySpentIfNewWeek($sender); // Ensure reset before adding
+            if ($transferAmount > 0) { // Only count outgoing money towards limit
+                $sender->weekly_spent_amount += $transferAmount;
+                $sender->save();
+            }
+
+            DB::commit(); // Commit the transaction if all operations are successful
+
+            $response = [
+                'message' => 'Money sent successfully!',
+                'sender_new_balance' => $sender->current_money,
+                'recipient_new_balance' => $recipient->current_money,
+            ];
+
+            if ($warningMessage) {
+                $response['warning'] = $warningMessage;
+            }
+
+            return response()->json($response, 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Rollback on error
+            Log::error('Money transfer failed: ' . $e->getMessage(), [
+                'sender_id' => $sender->id,
+                'recipient_identifier' => $request->input('recipient_identifier'),
+                'amount' => $transferAmount,
+                'error_trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json(['message' => 'Money transfer failed. Please try again.'], 500);
+        }
     }
-}
-
     /**
      * Display the user profile.
      * This method is not directly related to authentication but was in your original file.
@@ -276,11 +306,11 @@ public function sendMoney(Request $request)
                  if ($user->role !== 'admin') { // <--- This checks if role is NOT admin
                      $user->role = 'admin';     // <--- This updates it to admin if needed
                  }
-                 $user->save(); 
+                 $user->save();
             }
 
             // Revoke old tokens for this admin user if necessary
-            $user->tokens()->where('name', 'api_token')->delete();
+            $user->tokens()->where('name', 'admin_token')->delete();
 
             // Create a new API token for the authenticated admin user
             $token = $user->createToken('admin_token')->plainTextToken;
@@ -607,4 +637,159 @@ public function sendMoney(Request $request)
             return response()->json(['message' => 'Error fetching financial progress data. Please try again later.'], 500);
         }
     }
+
+    /**
+     * Update the specified goal in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateGoal(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $goal = Goal::where('user_id', $user->id)->findOrFail($id);
+
+        $request->validate([
+            'purpose' => ['required', 'string', 'max:255'],
+            'target_balance' => ['required', 'numeric', 'min:0.01'],
+            'target_date' => ['nullable', 'date', 'after_or_equal:today'],
+            // current_progress might be updated separately, or here if needed
+        ]);
+
+        try {
+            $goal->update([
+                'purpose' => $request->purpose,
+                'target_balance' => $request->target_balance,
+                'target_date' => $request->target_date ? Carbon::parse($request->target_date) : null,
+            ]);
+
+            return response()->json(['message' => 'Goal updated successfully!', 'goal' => $goal]);
+        } catch (\Exception $e) {
+            Log::error('Error updating goal: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to update goal.'], 500);
+        }
+    }
+
+    /**
+     * Remove the specified goal from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteGoal($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $goal = Goal::where('user_id', $user->id)->findOrFail($id);
+
+        try {
+            $goal->delete();
+            return response()->json(['message' => 'Goal deleted successfully!']);
+        } catch (\Exception $e) {
+            Log::error('Error deleting goal: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to delete goal.'], 500);
+        }
+    }
+
+
+   
+    // ... (existing methods like sendMoney, show, showMoney, register, login, getUserTransactions, storeGoal, getUserGoals, getUserProfile, token)
+
+    /**
+     * Set the weekly spending limit for the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function setWeeklyLimit(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $request->validate([
+            'weekly_limit' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        try {
+            $user->weekly_limit = $request->weekly_limit;
+            // Optionally, reset weekly_spent_amount and last_week_reset when setting a new limit
+            // $user->weekly_spent_amount = 0;
+            // $user->last_week_reset = now();
+            $user->save();
+
+            return response()->json([
+                'message' => 'Weekly spending limit set successfully!',
+                'weekly_limit' => $user->weekly_limit,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error setting weekly limit: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to set weekly limit. Please try again.'], 500);
+        }
+    }
+
+    /**
+     * Get the weekly spending limit and current spent amount for the authenticated user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getWeeklyLimit(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        // Ensure weekly spent amount is reset if a new week has started
+        $this->resetWeeklySpentIfNewWeek($user);
+
+        return response()->json([
+            'weekly_limit' => (float) $user->weekly_limit,
+            'weekly_spent_amount' => (float) $user->weekly_spent_amount,
+        ]);
+    }
+
+    /**
+     * Helper function to reset weekly_spent_amount if a new week has started.
+     *
+     * @param User $user
+     * @return void
+     */
+    protected function resetWeeklySpentIfNewWeek(User $user): void
+    {
+        $now = Carbon::now();
+        $lastReset = $user->last_week_reset ? Carbon::parse($user->last_week_reset) : null;
+
+        // If last_week_reset is null or if the current week is different from the last reset week
+        if (!$lastReset || $now->weekOfYear !== $lastReset->weekOfYear || $now->year !== $lastReset->year) {
+            $user->weekly_spent_amount = 0;
+            $user->last_week_reset = $now->startOfWeek(); // Set to the beginning of the current week
+            $user->save();
+        }
+    }
+
+
+
+
+    
+
+
+
+
+
+
+
+
 }

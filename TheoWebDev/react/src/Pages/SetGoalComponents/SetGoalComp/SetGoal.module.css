@@ -1,0 +1,291 @@
+/* General container for the SetGoal component */
+.goalSection {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin-top: 20px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.goalSection h2 {
+  color: #333;
+  margin-top: 0;
+  font-size: 1.8rem;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.goalSection > p { /* Targets the direct paragraph below h2 */
+  color: #666;
+  font-size: 0.95rem;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.errorMessage {
+  color: #d32f2f;
+  background-color: #ffebee;
+  border: 1px solid #ef9a9a;
+  padding: 10px 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Success Popup */
+.successPopup {
+  background-color: #4CAF50; /* Green */
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: fadeOut 3s forwards; /* Animation to fade out */
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; display: none; } /* Hide completely after fade */
+}
+
+
+/* Add Goal Button */
+.addBtn {
+  display: block; /* Make it take full width */
+  width: 100%;
+  padding: 12px 20px;
+  background-color: #2196f3; /* Blue */
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  margin-bottom: 20px;
+  font-weight: 600;
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.2);
+}
+
+.addBtn:hover {
+  background-color: #1976d2; /* Darker blue */
+  transform: translateY(-2px);
+}
+
+.addBtn:active {
+  transform: translateY(0);
+}
+
+/* Add Goal Form Container */
+.inputContainer {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  margin-bottom: 25px;
+}
+
+.inputGroup {
+  margin-bottom: 18px;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: #555;
+  font-weight: 600;
+}
+
+.inputGroup input[type="text"],
+.inputGroup input[type="number"],
+.inputGroup input[type="date"] {
+  width: calc(100% - 22px); /* Account for padding and border */
+  padding: 12px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  color: #333;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inputGroup input[type="text"]:focus,
+.inputGroup input[type="number"]:focus,
+.inputGroup input[type="date"]:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+}
+
+/* Action Buttons for Add/Edit Forms */
+.actionButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.saveBtn, .cancelBtn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  font-weight: 600;
+}
+
+.saveBtn {
+  background-color: #4CAF50; /* Green */
+  color: white;
+}
+
+.saveBtn:hover {
+  background-color: #388E3C;
+  transform: translateY(-1px);
+}
+
+.cancelBtn {
+  background-color: #bdbdbd; /* Gray */
+  color: white;
+}
+
+.cancelBtn:hover {
+  background-color: #9E9E9E;
+  transform: translateY(-1px);
+}
+
+/* Goals List Display */
+.goalsListContainer {
+  margin-top: 25px;
+}
+
+.goalsListContainer h3 {
+  font-size: 1.4rem;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.goalItemDisplay {
+  display: flex;
+  flex-direction: column; /* Stack info and actions on smaller screens */
+  background-color: #f0f8ff; /* Light blue background for each goal */
+  border: 1px solid #e0f2f7;
+  border-left: 5px solid #2196f3; /* Accent border */
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+}
+
+@media (min-width: 500px) { /* Adjust layout for wider screens */
+  .goalItemDisplay {
+    flex-direction: row; /* Row layout on wider screens */
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px; /* Increased gap between info and actions */
+  }
+}
+
+.goalItemDisplay:hover {
+  transform: translateY(-3px);
+}
+
+.goalInfo {
+  flex-grow: 1; /* Allows info to take available space */
+  margin-bottom: 10px; /* Space between info and actions on small screens */
+  display: flex; /* Use flexbox for goal info itself */
+  flex-direction: column; /* Stack spans vertically */
+  align-items: flex-start; /* Align text to the left */
+}
+
+@media (min-width: 500px) {
+  .goalInfo {
+    margin-bottom: 0;
+    flex-direction: row; /* Arrange spans in a row on wider screens */
+    flex-wrap: wrap; /* Allow spans to wrap if needed */
+    justify-content: flex-start;
+    align-items: center;
+  }
+}
+
+.goalInfo span {
+  display: block; /* Always block to ensure each piece of info gets its own line */
+  color: #444;
+  font-size: 0.9rem;
+  margin-bottom: 5px; /* Space between lines of info */
+}
+
+@media (min-width: 500px) {
+  .goalInfo span {
+    display: inline-block; /* Revert to inline-block on wider screens for horizontal layout */
+    margin-right: 15px; /* Space between inline items */
+    margin-bottom: 0; /* Remove bottom margin when inline */
+    white-space: nowrap; /* Prevent breaking in the middle of a span */
+  }
+  .goalInfo span:last-child {
+    margin-right: 0;
+  }
+}
+
+
+.goalActions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0; /* Prevents actions from shrinking */
+}
+
+/* Edit and Delete Buttons for individual goals */
+.editBtn, .deleteBtn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer; /* Ensures the cursor is a pointer */
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  font-weight: 500;
+}
+
+.editBtn {
+  background-color: #ffc107; /* Amber/Yellow */
+  color: #333;
+}
+
+.editBtn:hover {
+  background-color: #ffb300; /* Darker amber */
+  transform: translateY(-1px);
+}
+
+/* This is the key for the delete button cursor issue */
+.deleteBtn {
+  background-color: #f44336; /* Red */
+  color: white;
+  cursor: pointer !important; /* Explicitly ensure pointer cursor, overriding any potential defaults */
+}
+
+.deleteBtn:hover {
+  background-color: #d32f2f; /* Darker red */
+  transform: translateY(-1px);
+}
+
+/* Message for no goals */
+.goalSection > p:last-child { /* Targets the "No goals set yet..." paragraph */
+  text-align: center;
+  color: #777;
+  font-style: italic;
+  margin-top: 20px;
+}
+
+/* Styles for GearIcon (if still used, although individual buttons are now present) */
+/* The commented out GearIcon button uses styles.gearBtn which might not be needed now */
+/* .gearBtn { ... } */
+/* .gearBtn.active { ... } */
+/* .gearBtn.inactive { ... } */

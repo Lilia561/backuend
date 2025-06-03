@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import Dashboard from './Pages/DashboardComponents/Dashboard';
 import AdminPage from './Pages/AdminPageComponents/AdminPage';
 import LoginPage from './Pages/LoginComponents/LoginPage';
-import SetGoalLimitScreen from './Pages/SetGoalComponents/SetGoalLimitScreen/SetGoalLimitScreen';
+import SetGoalLimitScreen from './Pages/SetGoalComponents/SetGoalLimitBase';
 import Feedback from './Pages/FeedBackComponents/FeedBack';
 import FullHistory from './Pages/HistoryPageComponents/FullHistory';
 import Transfer from './Pages/TransferComponents/Transfer';

@@ -37,6 +37,15 @@ Route::middleware(['auth:sanctum', AdminMiddleware::class])->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     // ... your existing authenticated routes
     Route::get('/user/financial-progress', [UserController::class, 'getFinancialProgressData']);
+
+    // Goal Routes
+    Route::post('/goals', [UserController::class, 'storeGoal']); // Route to create a new goal
+    Route::get('/goals', [UserController::class, 'getUserGoals']); // Route to fetch all goals for the user
+    Route::put('/goals/{id}', [UserController::class, 'updateGoal']); // New: Route to update a specific goal
+    Route::delete('/goals/{id}', [UserController::class, 'deleteGoal']); // New: Route to delete a specific goal
+
+    Route::post('/user/set-weekly-limit', [UserController::class, 'setWeeklyLimit']);
+    Route::get('/user/weekly-limit', [UserController::class, 'getWeeklyLimit']);
 });
 
 
@@ -45,6 +54,3 @@ Route::get('/transactions/user', [UserController::class, 'getUserTransactions'])
 // Route for money transfer
 Route::middleware('auth:sanctum')->post('/e-wallet/transfer', [UserController::class, 'sendMoney']);
 
-// New Goal Routes
-Route::middleware('auth:sanctum')->post('/goals', [UserController::class, 'storeGoal']); // Route to create a new goal
-Route::middleware('auth:sanctum')->get('/goals', [UserController::class, 'getUserGoals']); // Route to fetch all goals for the user
